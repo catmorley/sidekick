@@ -443,32 +443,71 @@
     }
 
     function speak(text) {
-      if (!window.speechSynthesis) return;
-      window.speechSynthesis.cancel();
-      // Force voices to load
-      window.speechSynthesis.getVoices();
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.rate = 1.05;
-      utter.pitch = 1.12;
-      utter.volume = 1;
+      if (!text) return;
 
-      const voices = window.speechSynthesis.getVoices();
-      let voice = null;
+      // Always try browser speech first
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.getVoices();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.rate = 1.05;
+        utter.pitch = 1.12;
+        utter.volume = 1;
 
-      if (selectedVoiceURI) {
-        voice = voices.find(v => v.voiceURI === selectedVoiceURI);
+        const voices = window.speechSynthesis.getVoices();
+        let voice = null;
+        if (selectedVoiceURI) {
+          voice = voices.find(v => v.voiceURI === selectedVoiceURI);
+        }
+        if (!voice) {
+          voice =
+            voices.find(v => /Google US English|Samantha|Ava|Emma|Microsoft Aria|Microsoft Jenny/i.test(v.name) && /en-US/i.test(v.lang)) ||
+            voices.find(v => v.lang.startsWith('en-US')) ||
+            voices.find(v => v.lang.startsWith('en'));
+        }
+        if (voice) utter.voice = voice;
+
+        // If speech starts successfully, great. If it fails or is blocked, fall through to the fallback.
+        let started = false;
+        utter.onstart = function() { started = true; };
+        window.speechSynthesis.speak(utter);
+
+        // After a short delay, if nothing started, use the reliable fallback
+        setTimeout(function() {
+          if (!started) {
+            fallbackSpeak(text);
+          }
+        }, 600);
+      } else {
+        fallbackSpeak(text);
       }
+    }
 
-      // Fallback preference if nothing selected yet
-      if (!voice) {
-        voice =
-          voices.find(v => /Microsoft Aria|Microsoft Jenny|Google US English|Samantha|Ava|Emma/i.test(v.name) && /en-US|en_US/i.test(v.lang)) ||
-          voices.find(v => v.lang.startsWith('en-US') && !/male/i.test(v.name)) ||
-          voices.find(v => v.lang.startsWith('en') && !/AU|Australia|male/i.test(v.lang + v.name));
+    function fallbackSpeak(text) {
+      // Copy to clipboard
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+          showSpeakToast("Copied to clipboard!\n\nOn Mac: press Option + Esc  (or Edit → Speech → Start Speaking)\n\nThe text is ready.");
+        }).catch(function() {
+          showSpeakToast("Select the text below and use Edit → Speech → Start Speaking:\n\n" + text);
+        });
+      } else {
+        showSpeakToast("Select the text below and use Edit → Speech → Start Speaking:\n\n" + text);
       }
+    }
 
-      if (voice) utter.voice = voice;
-      window.speechSynthesis.speak(utter);
+    function showSpeakToast(msg) {
+      // Simple temporary message
+      let toast = document.getElementById('speak-toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'speak-toast';
+        toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#4a3a5c;color:white;padding:12px 18px;border-radius:12px;font-size:13px;z-index:9999;max-width:90%;white-space:pre-wrap;box-shadow:0 4px 20px rgba(0,0,0,0.2);';
+        document.body.appendChild(toast);
+      }
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      setTimeout(function() { toast.style.display = 'none'; }, 6000);
     }
 
     function populateVoiceList() {
