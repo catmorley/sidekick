@@ -38,8 +38,29 @@
   </style>
 </head>
 <body>
-  <div id="app" class="min-h-screen flex mode-bg bg-morning-light">
+  <div id="app" class="min-h-screen flex flex-col mode-bg bg-morning-light">
 
+    <!-- BIG ENID BAR -->
+    <div id="enid-bar" class="w-full bg-white/90 backdrop-blur border-b border-lavender-100 px-6 py-4 flex items-center gap-5 shadow-soft z-20">
+      <img src="enid-avatar.png" alt="Enid" class="w-16 h-16 rounded-full object-cover border-2 border-lavender-300 shadow-md" onerror="this.src=''; this.alt='E'; this.className='w-16 h-16 rounded-full bg-lavender-400 text-white flex items-center justify-center text-2xl font-bold';">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2">
+          <h1 class="text-xl font-semibold text-lavender-800">Enid</h1>
+          <span class="text-xs text-lavender-400">your sidekick</span>
+        </div>
+        <p class="text-sm text-gray-500 truncate" id="enid-status">Ready when you are. Talk to me or start a Brain Dump.</p>
+      </div>
+      <button id="big-mic-btn" type="button" class="flex items-center gap-2 px-6 py-3 rounded-2xl bg-lavender-500 hover:bg-lavender-600 text-white font-medium shadow-soft transition-colors">
+        <span class="text-xl">🎤</span>
+        <span>Talk to Enid</span>
+      </button>
+      <button id="brain-dump-btn" type="button" class="flex items-center gap-2 px-5 py-3 rounded-2xl bg-white border border-lavender-200 hover:bg-lavender-50 text-lavender-700 font-medium transition-colors">
+        <span>🧠</span>
+        <span>Brain Dump</span>
+      </button>
+    </div>
+
+    <div class="flex flex-1 min-h-0">
     <!-- LEFT SIDEBAR -->
     <aside class="w-64 flex-shrink-0 bg-white/80 backdrop-blur border-r border-lavender-100 flex flex-col">
       <div class="p-5 border-b border-lavender-100">
@@ -69,9 +90,6 @@
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <button id="brain-dump-btn" type="button" class="px-4 py-2 rounded-full bg-lavender-500 hover:bg-lavender-600 text-white text-sm font-medium shadow-soft">
-            🧠 Brain Dump
-          </button>
           <input id="capture-input" type="text" placeholder="Quick capture..." 
             class="pl-4 pr-4 py-2 text-sm bg-white/80 border border-lavender-100 rounded-full w-52 focus:outline-none focus:ring-2 focus:ring-lavender-200 placeholder:text-lavender-300">
           <button id="toggle-chat" class="p-2.5 rounded-full bg-lavender-100 text-lavender-600 text-sm">💬</button>
@@ -141,6 +159,7 @@
         <p id="voice-status" class="text-[10px] text-lavender-400 mt-1.5 px-1 hidden"></p>
       </div>
     </aside>
+    </div> <!-- end flex row -->
   </div>
 
   <script>
@@ -606,12 +625,14 @@
 
       recognition.onresult = function(event) {
         const transcript = event.results[0][0].transcript;
-        document.getElementById('chat-input').value = transcript;
-        setVoiceStatus('Got it: "' + transcript + '"');
-        // Auto-send after a short pause so user can see it
-        setTimeout(function() {
-          sendChat();
-        }, 400);
+        if (window._brainDumpMode) {
+          setVoiceStatus('Brain dump captured');
+          finishBrainDump(transcript);
+        } else {
+          document.getElementById('chat-input').value = transcript;
+          setVoiceStatus('Got it: "' + transcript + '"');
+          setTimeout(function() { sendChat(); }, 400);
+        }
       };
 
       recognition.onerror = function(event) {
@@ -676,29 +697,35 @@
     // ========== EVENT DELEGATION (this makes clicking reliable) ==========
     
     function startBrainDump() {
-      const thoughts = prompt("Brain dump — pour everything out. No organising, just get it out of your head:\n\n(Type or paste all your thoughts, ideas, worries, to-dos...)");
-      if (!thoughts || !thoughts.trim()) return;
+      // Voice-first brain dump
+      const status = document.getElementById('enid-status');
+      if (status) status.textContent = "Brain dump mode — just talk. Get everything out.";
 
-      // Split by lines or sentences into inbox items
-      const lines = thoughts.split(/[\n•\-]+/).map(function(l) { return l.trim(); }).filter(Boolean);
+      // Re-use the speech recognition but tag it as brain dump
+      window._brainDumpMode = true;
+      startListening();
+    }
+
+    function finishBrainDump(transcript) {
+      window._brainDumpMode = false;
+      if (!transcript || !transcript.trim()) return;
+
+      // Split roughly into items
+      const lines = transcript.split(/[\.\?\!\n]+/).map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 3; });
       if (lines.length === 0) {
-        state.inbox.push(thoughts.trim());
+        state.inbox.push(transcript.trim());
       } else {
-        lines.forEach(function(line) {
-          if (line.length > 2) state.inbox.push(line);
-        });
+        lines.forEach(function(line) { state.inbox.push(line); });
       }
 
-      state.chat.push({
-        id: uid(),
-        role: 'assistant',
-        text: "Got the whole dump. " + (lines.length || 1) + " things landed in the inbox.\n\nNothing is organised yet — that’s the point. When you’re ready we can turn them into real tasks or projects. For now just breathe. It’s out of your head."
-      });
+      const count = lines.length || 1;
+      const reply = "Got it. " + count + " things just landed in the inbox.\n\nNothing is organised yet — that’s the point. It’s out of your head. When you’re ready we can turn them into real tasks or projects. For now, breathe.";
+      state.chat.push({ id: uid(), role: 'assistant', text: reply });
       render();
-      // Offer to speak the confirmation
-      setTimeout(function() {
-        speak(state.chat[state.chat.length-1].text);
-      }, 300);
+      setTimeout(function() { speak(reply); }, 400);
+
+      const status = document.getElementById('enid-status');
+      if (status) status.textContent = "Ready when you are. Talk to me or start a Brain Dump.";
     }
 
     document.addEventListener('click', function(e) {
@@ -709,7 +736,7 @@
         return;
       }
 
-      const target = e.target.closest('[data-mode], [data-task], [data-step], #add-task, #send-chat, #toggle-chat, #close-chat, #mic-btn, #speak-last, #brain-dump-btn');
+      const target = e.target.closest('[data-mode], [data-task], [data-step], #add-task, #send-chat, #toggle-chat, #close-chat, #mic-btn, #speak-last, #brain-dump-btn, #big-mic-btn');
       if (!target) return;
 
       if (target.hasAttribute('data-mode')) {
@@ -728,7 +755,8 @@
       } else if (target.id === 'close-chat') {
         state.showChat = false;
         render();
-      } else if (target.id === 'mic-btn') {
+      } else if (target.id === 'mic-btn' || target.id === 'big-mic-btn') {
+        window._brainDumpMode = false;
         startListening();
       } else if (target.id === 'brain-dump-btn') {
         startBrainDump();
