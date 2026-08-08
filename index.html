@@ -1015,6 +1015,15 @@
     }
 
     document.addEventListener('click', function(e) {
+      // Handle Add menu items first (before any outside-click logic)
+      const addItem = e.target.closest('[data-add]');
+      if (addItem) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleAdd(addItem.getAttribute('data-add'));
+        return;
+      }
+
       const speakBtn = e.target.closest('.speak-btn');
       if (speakBtn) {
         const text = speakBtn.getAttribute('data-speak');
@@ -1022,7 +1031,7 @@
         return;
       }
 
-      const target = e.target.closest('[data-mode], [data-task], [data-step], [data-add], #add-task, #send-chat, #toggle-chat, #close-chat, #mic-btn, #speak-last, #brain-dump-btn, #big-mic-btn, #add-menu-btn');
+      const target = e.target.closest('[data-mode], [data-task], [data-step], #add-task, #send-chat, #toggle-chat, #close-chat, #mic-btn, #speak-last, #brain-dump-btn, #big-mic-btn, #add-menu-btn');
       if (!target) return;
 
       if (target.hasAttribute('data-mode')) {
@@ -1088,9 +1097,10 @@
     document.addEventListener('click', function(ev) {
       const menu = document.getElementById('add-menu');
       const btn = document.getElementById('add-menu-btn');
-      if (menu && !menu.classList.contains('hidden') && btn && !btn.contains(ev.target) && !menu.contains(ev.target)) {
-        menu.classList.add('hidden');
-      }
+      if (!menu || menu.classList.contains('hidden')) return;
+      if (btn && btn.contains(ev.target)) return;
+      if (menu.contains(ev.target)) return;
+      menu.classList.add('hidden');
     });
 
     // Speak the opening message once
