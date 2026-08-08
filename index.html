@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sidekick — with Enid</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            lavender: {
+              50: '#F9F5FC', 100: '#F0E6F7', 200: '#E0CBF0', 300: '#C9A9E4',
+              400: '#B08AD3', 500: '#9A6FC2', 600: '#8258A8',
+            },
+            teal: { 50: '#F0F9F9', 100: '#D8F0F0', 200: '#B2E0E0', 300: '#7CC8C8', 400: '#4AAEAE', 500: '#2F9494' },
+            work: { light: '#E8F4F4', DEFAULT: '#4AAEAE', dark: '#2F7A7A' },
+            creative: { light: '#F5EDFA', DEFAULT: '#9A6FC2', dark: '#6B4A8F' },
+            morning: { light: '#FFF8E7', DEFAULT: '#E8C47A', dark: '#C9A04A' },
+            evening: { light: '#F0E8F5', DEFAULT: '#7B6B9A', dark: '#5A4A7A' },
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          boxShadow: {
+            soft: '0 2px 15px -3px rgba(0,0,0,0.04), 0 10px 20px -2px rgba(0,0,0,0.03)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; margin: 0; background: #F8F6F9; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #d4c4e0; border-radius: 3px; }
+    .mode-bg { transition: background-color 0.35s ease; }
+    button { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div id="app" class="min-h-screen flex mode-bg bg-morning-light">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="w-64 flex-shrink-0 bg-white/80 backdrop-blur border-r border-lavender-100 flex flex-col">
+      <div class="p-5 border-b border-lavender-100">
+        <h1 class="text-lg font-semibold text-lavender-700 tracking-tight">Sidekick</h1>
+        <p class="text-xs text-lavender-400 mt-0.5">your slightly bossy sidekick</p>
+      </div>
+
+      <div class="p-3 space-y-1 flex-1 overflow-y-auto">
+        <p class="text-[10px] uppercase tracking-wider text-lavender-400 px-2 mb-2">Modes</p>
+        <div id="mode-list"></div>
+      </div>
+
+      <div id="routine-panel" class="p-4 border-t border-lavender-100" style="display:none;">
+        <p class="text-[10px] uppercase tracking-wider text-lavender-400 mb-3" id="routine-title">Routine</p>
+        <div id="routine-steps" class="space-y-2"></div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="flex-1 flex flex-col min-w-0">
+      <header class="px-8 py-5 flex items-center justify-between border-b border-white/50">
+        <div class="flex items-center gap-3">
+          <div id="mode-icon" class="w-10 h-10 rounded-2xl flex items-center justify-center text-xl bg-morning-light text-morning-dark">🌅</div>
+          <div>
+            <h2 id="mode-name" class="text-xl font-medium text-gray-800">Morning</h2>
+            <p id="mode-desc" class="text-sm text-gray-500">Ease into the day with intention</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <input id="capture-input" type="text" placeholder="Quick capture..." 
+            class="pl-4 pr-4 py-2 text-sm bg-white/80 border border-lavender-100 rounded-full w-52 focus:outline-none focus:ring-2 focus:ring-lavender-200 placeholder:text-lavender-300">
+          <button id="toggle-chat" class="p-2.5 rounded-full bg-lavender-100 text-lavender-600 text-sm">💬</button>
+        </div>
+      </header>
+
+      <div class="flex-1 overflow-y-auto px-8 py-6">
+        <div class="max-w-2xl">
+          <div class="mb-8">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider">Focus now</h3>
+              <span id="task-count" class="text-xs text-lavender-400">0 open</span>
+            </div>
+            <div id="task-list" class="space-y-2"></div>
+            <div class="mt-4 flex gap-2">
+              <input id="new-task" type="text" placeholder="Add a task in this mode..."
+                class="flex-1 px-4 py-2.5 text-sm bg-white/60 border border-lavender-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-lavender-200">
+              <button id="add-task" class="px-4 py-2.5 bg-lavender-500 text-white rounded-xl hover:bg-lavender-600">+</button>
+            </div>
+          </div>
+
+          <div id="inbox-section" class="mb-6" style="display:none;">
+            <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Inbox</h3>
+            <div id="inbox-list"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ENID CHAT -->
+    <aside id="chat-panel" class="w-80 flex-shrink-0 bg-white/90 backdrop-blur border-l border-lavender-100 flex flex-col">
+      <div class="p-4 border-b border-lavender-100">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-lavender-400 to-teal-400 flex items-center justify-center text-white text-xs font-semibold">E</div>
+            <div>
+              <p class="text-sm font-medium text-gray-800">Enid</p>
+              <p class="text-[10px] text-lavender-400">bossy · on your side · no nonsense</p>
+            </div>
+          </div>
+          <button id="close-chat" class="text-gray-400 hover:text-gray-600 text-sm">✕</button>
+        </div>
+        <div class="mt-3">
+          <label class="text-[10px] uppercase tracking-wider text-lavender-400">Voice</label>
+          <select id="voice-select" class="mt-1 w-full text-xs bg-lavender-50 border border-lavender-100 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-lavender-200 text-gray-700">
+            <option value="">Loading voices…</option>
+          </select>
+        </div>
+      </div>
+      <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+      <div class="p-4 border-t border-lavender-100">
+        <div class="flex gap-2 items-center">
+          <button id="mic-btn" type="button" title="Speak to Enid"
+            class="p-2.5 rounded-xl bg-lavender-100 text-lavender-600 hover:bg-lavender-200 transition-colors flex-shrink-0">
+            🎤
+          </button>
+          <input id="chat-input" type="text" placeholder="Talk to Enid (or type)..."
+            class="flex-1 px-3.5 py-2.5 text-sm bg-lavender-50 border border-lavender-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-lavender-200">
+          <button id="send-chat" type="button" class="px-3 py-2.5 bg-lavender-500 text-white rounded-xl hover:bg-lavender-600">→</button>
+        </div>
+        <p id="voice-status" class="text-[10px] text-lavender-400 mt-1.5 px-1 hidden"></p>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    // ========== HELPERS ==========
+    function uid() {
+      return 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    }
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // ========== DATA ==========
+    const MODES = [
+      { id: 'morning', name: 'Morning', desc: 'Ease into the day with intention', bg: 'bg-morning-light', text: 'text-morning-dark', icon: '🌅' },
+      { id: 'work', name: 'Deep Work', desc: 'Focused, important work only', bg: 'bg-work-light', text: 'text-work-dark', icon: '🎯' },
+      { id: 'admin', name: 'Admin', desc: 'Shallow tasks, email, logistics', bg: 'bg-teal-50', text: 'text-teal-600', icon: '📋' },
+      { id: 'creative', name: 'Creative', desc: 'Ideas, play, making things', bg: 'bg-creative-light', text: 'text-creative-dark', icon: '✨' },
+      { id: 'evening', name: 'Evening', desc: 'Wind down, review, rest', bg: 'bg-evening-light', text: 'text-evening-dark', icon: '🌙' },
+      { id: 'free', name: 'Free', desc: 'No agenda. Just be.', bg: 'bg-lavender-50', text: 'text-lavender-600', icon: '☁️' },
+    ];
+
+    const DEFAULT_ROUTINES = {
+      morning: [
+        { id: 'm1', title: 'Drink water / hydrate', done: false },
+        { id: 'm2', title: 'Move body (stretch, walk, or short workout)', done: false },
+        { id: 'm3', title: 'Journal or brain dump (3–5 min)', done: false },
+        { id: 'm4', title: "Review today's top 1–3 priorities", done: false },
+        { id: 'm5', title: 'Set intention for the day', done: false },
+      ],
+      work: [
+        { id: 'w1', title: 'Clear desk / close unrelated tabs', done: false },
+        { id: 'w2', title: 'Pick the single most important task', done: false },
+        { id: 'w3', title: 'Set a timer (25 or 50 min)', done: false },
+        { id: 'w4', title: 'Begin — no switching', done: false },
+      ],
+      evening: [
+        { id: 'e1', title: 'Shutdown work (close laptop / notes)', done: false },
+        { id: 'e2', title: 'Quick review: what went well today?', done: false },
+        { id: 'e3', title: 'Capture any open loops into inbox', done: false },
+        { id: 'e4', title: "Plan tomorrow's top priority (optional)", done: false },
+        { id: 'e5', title: 'Transition activity (walk, music, stretch)', done: false },
+      ],
+    };
+
+    // ========== STATE ==========
+    let state = {
+      modeId: 'morning',
+      tasks: [
+        { id: uid(), title: 'Explore Sidekick with Enid', status: 'todo', modes: ['morning', 'work'], notes: '' },
+        { id: uid(), title: 'Brain dump all current open loops', status: 'todo', modes: ['admin', 'work'], notes: 'Get everything out of your head' },
+        { id: uid(), title: 'Sketch the next creative idea', status: 'someday', modes: ['creative'], notes: '' },
+      ],
+      routines: JSON.parse(JSON.stringify(DEFAULT_ROUTINES)),
+      chat: [
+        { id: uid(), role: 'assistant', text: "Hey. I'm Enid.\n\nI'm the bossy one. I'll tell you to finish what you're on before you chase the next idea, and I'll chase *you* when you start drifting.\n\nMorning mode is on. Shall we do the routine, or do you already know what needs doing first?" }
+      ],
+      inbox: [],
+      showChat: true,
+    };
+
+    // Load saved state
+    try {
+      const saved = localStorage.getItem('sidekick-enid-v1');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        state = { ...state, ...parsed };
+      }
+    } catch (e) {}
+
+    function save() {
+      try {
+        localStorage.setItem('sidekick-enid-v1', JSON.stringify(state));
+      } catch (e) {}
+    }
+
+    // ========== ENID PERSONALITY ==========
+    function enidReply(msg) {
+      const m = (msg || '').toLowerCase().trim();
+      const mode = MODES.find(x => x.id === state.modeId) || MODES[0];
+      const open = state.tasks.filter(t => t.status !== 'done' && t.status !== 'someday' && t.modes.includes(state.modeId));
+
+      if (m.includes('idea') || m.includes('remind me') || m.includes('write this') || m.includes('note this') || m.includes('brain dump') || m.includes('capture this')) {
+        return "Got it. Written down.\n\nYou can stop holding it in your head now. I'll bring it back when it's actually useful. Meanwhile — what's the one thing in front of you that actually needs finishing?";
+      }
+      if (m.includes('stop working') || m.includes("i'm done") || m.includes('finish work') || m.includes('work is over') || m.includes('enough for today') || m.includes('shutdown')) {
+        return "Good. Work is closed.\n\nDon't sneak back in. Switch to Creative, Evening, or Free. You've done enough for this block. Protect the rest of the day.";
+      }
+      if (m.includes('distract') || m.includes('focus') || m.includes('procrastinat') || m.includes("can't start") || m.includes('stuck') || m.includes('scrolling')) {
+        if (open[0]) {
+          return "I can see you drifting.\n\nOne thing only: \"" + open[0].title + "\".\n\nSet a timer if you have to. No switching until it's done or the timer ends. Start smaller than you think you need to.";
+        }
+        return "You're drifting. Pick the smallest possible next action and do only that for the next five minutes. No negotiation.";
+      }
+      if (m.includes('what should i do') || m.includes('what next') || m.includes('help me decide') || m.includes('suggest') || m === 'help' || m === 'what now') {
+        if (open[0]) {
+          return "Right now, in " + mode.name + " mode, this is the clearest move:\n\n**" + open[0].title + "**\n\nFinish it (or a real chunk of it) before you even look at the next idea. I'm holding everything else.";
+        }
+        return "Nothing urgent in this mode. Either switch modes or dump whatever's floating around so we can decide. Don't just sit there.";
+      }
+      if (m.includes('tired') || m.includes('overwhelm') || m.includes('hard day') || m.includes('exhausted') || m.includes('burnt')) {
+        return "Heavy days are real.\n\nWe don't do the big thing right now. We do the next tiny honest thing. What would make the next hour even 5% lighter?";
+      }
+      if (m.includes('hello') || m.includes('hi enid') || m.includes('hey') || m.length < 4) {
+        const h = new Date().getHours();
+        if (h < 12) return "Morning. Don't let the day run you. What's the first real thing?";
+        if (h < 17) return "Afternoon. Still on track, or do we need to course-correct?";
+        return "Evening. Start closing loops. No new projects.";
+      }
+
+      const advice = {
+        morning: "Morning mode. Protect the ramp-up. Don't dive straight into chaos.",
+        work: "Deep Work. One important thing. Everything else can wait.",
+        admin: "Admin mode. Batch it and get out. Don't let this expand.",
+        creative: "Creative mode. Judgment off. Play is allowed.",
+        evening: "Evening. Closing, not starting. Be kind to tomorrow-you.",
+        free: "Free mode. No shoulds. Enjoy it without the guilt.",
+      };
+      return "Noted.\n\n" + (advice[state.modeId] || "") + "\n\nTell me what you're actually working on or what's getting in the way. I'm not going anywhere.";
+    }
+
+    // ========== RENDER ==========
+    function render() {
+      const mode = MODES.find(m => m.id === state.modeId) || MODES[0];
+      const app = document.getElementById('app');
+      app.className = 'min-h-screen flex mode-bg ' + mode.bg;
+
+      // Modes
+      let modeHtml = '';
+      MODES.forEach(function(m) {
+        const active = state.modeId === m.id;
+        modeHtml += '<button type="button" data-mode="' + m.id + '" class="mode-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ' +
+          (active ? (m.bg + ' ' + m.text + ' font-medium shadow-soft') : 'text-gray-600 hover:bg-white/60') + '">' +
+          '<span class="text-base">' + m.icon + '</span>' + m.name + '</button>';
+      });
+      document.getElementById('mode-list').innerHTML = modeHtml;
+
+      // Header
+      document.getElementById('mode-icon').textContent = mode.icon;
+      document.getElementById('mode-icon').className = 'w-10 h-10 rounded-2xl flex items-center justify-center text-xl ' + mode.bg + ' ' + mode.text;
+      document.getElementById('mode-name').textContent = mode.name;
+      document.getElementById('mode-desc').textContent = mode.desc;
+
+      // Tasks
+      const modeTasks = state.tasks.filter(function(t) {
+        return t.modes.indexOf(state.modeId) !== -1 && t.status !== 'done' && t.status !== 'someday';
+      });
+      document.getElementById('task-count').textContent = modeTasks.length + ' open';
+
+      if (modeTasks.length === 0) {
+        document.getElementById('task-list').innerHTML = '<p class="text-sm text-gray-400 py-6 text-center">Nothing active in this mode. Add something or switch.</p>';
+      } else {
+        let taskHtml = '';
+        modeTasks.forEach(function(t) {
+          taskHtml += '<div class="flex items-start gap-3 p-3.5 bg-white/80 rounded-2xl shadow-soft">' +
+            '<button type="button" data-task="' + t.id + '" class="task-toggle mt-0.5 text-lavender-400 hover:text-lavender-600 text-lg leading-none">' +
+            (t.status === 'done' ? '✓' : '○') + '</button>' +
+            '<div><p class="text-sm font-medium ' + (t.status === 'done' ? 'text-gray-400 line-through' : 'text-gray-800') + '">' + escapeHtml(t.title) + '</p>' +
+            (t.notes ? '<p class="text-xs text-gray-400 mt-0.5">' + escapeHtml(t.notes) + '</p>' : '') +
+            '</div></div>';
+        });
+        document.getElementById('task-list').innerHTML = taskHtml;
+      }
+
+      // Routine
+      const routine = state.routines[state.modeId];
+      const routinePanel = document.getElementById('routine-panel');
+      if (routine && routine.length) {
+        routinePanel.style.display = 'block';
+        document.getElementById('routine-title').textContent = mode.name + ' Routine';
+        let stepHtml = '';
+        routine.forEach(function(s) {
+          stepHtml += '<button type="button" data-step="' + s.id + '" class="routine-step w-full flex items-start gap-2.5 text-left">' +
+            '<div class="mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ' +
+            (s.done ? 'bg-lavender-500 border-lavender-500 text-white' : 'border-lavender-300') + '">' +
+            (s.done ? '<span class="text-[10px]">✓</span>' : '') + '</div>' +
+            '<span class="text-xs leading-snug ' + (s.done ? 'text-lavender-400 line-through' : 'text-gray-700') + '">' + escapeHtml(s.title) + '</span></button>';
+        });
+        document.getElementById('routine-steps').innerHTML = stepHtml;
+      } else {
+        routinePanel.style.display = 'none';
+      }
+
+      // Inbox
+      const inboxSection = document.getElementById('inbox-section');
+      if (state.inbox.length > 0) {
+        inboxSection.style.display = 'block';
+        let inboxHtml = '';
+        state.inbox.forEach(function(item) {
+          inboxHtml += '<div class="px-3 py-2 bg-white/50 rounded-xl text-sm text-gray-600 mb-1">📥 ' + escapeHtml(item) + '</div>';
+        });
+        document.getElementById('inbox-list').innerHTML = inboxHtml;
+      } else {
+        inboxSection.style.display = 'none';
+      }
+
+      // Chat
+      document.getElementById('chat-panel').style.display = state.showChat ? 'flex' : 'none';
+      let chatHtml = '';
+      state.chat.forEach(function(msg) {
+        const isUser = msg.role === 'user';
+        chatHtml += '<div class="flex ' + (isUser ? 'justify-end' : 'justify-start') + '">' +
+          '<div class="max-w-[85%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ' +
+          (isUser ? 'bg-lavender-500 text-white rounded-br-md' : 'bg-lavender-50 text-gray-700 rounded-bl-md') + '">' +
+          escapeHtml(msg.text) + '</div></div>';
+      });
+      const chatEl = document.getElementById('chat-messages');
+      chatEl.innerHTML = chatHtml;
+      chatEl.scrollTop = chatEl.scrollHeight;
+
+      save();
+    }
+
+    // ========== ACTIONS ==========
+    function switchMode(id) {
+      if (!id || id === state.modeId) return;
+      state.modeId = id;
+      const msgs = {
+        morning: "Morning mode. Let's set the day up properly instead of letting it set itself up.",
+        work: "Deep Work mode. One important thing at a time. Everything else waits. What's the most important thing right now?",
+        admin: "Admin mode. Batch the shallow stuff and get out. Don't let this expand.",
+        creative: "Creative mode. Judgment off. What wants to be made or played with?",
+        evening: "Evening mode. Close loops. Protect your rest. Work is done.",
+        free: "Free mode. No shoulds. Just be.",
+      };
+      state.chat.push({ id: uid(), role: 'assistant', text: msgs[id] || 'Mode switched.' });
+      render();
+    }
+
+    function toggleTask(id) {
+      const t = state.tasks.find(function(x) { return x.id === id; });
+      if (t) {
+        t.status = t.status === 'done' ? 'todo' : 'done';
+        render();
+      }
+    }
+
+    function toggleStep(id) {
+      const steps = state.routines[state.modeId];
+      if (!steps) return;
+      const s = steps.find(function(x) { return x.id === id; });
+      if (s) {
+        s.done = !s.done;
+        render();
+      }
+    }
+
+    function addTask() {
+      const input = document.getElementById('new-task');
+      const title = (input.value || '').trim();
+      if (!title) return;
+      state.tasks.push({ id: uid(), title: title, status: 'todo', modes: [state.modeId], notes: '' });
+      input.value = '';
+      render();
+    }
+
+    function sendChat() {
+      const input = document.getElementById('chat-input');
+      const text = (input.value || '').trim();
+      if (!text) return;
+      state.chat.push({ id: uid(), role: 'user', text: text });
+      input.value = '';
+      render();
+      setTimeout(function() {
+        state.chat.push({ id: uid(), role: 'assistant', text: enidReply(text) });
+        render();
+      }, 300);
+    }
+
+    function doCapture() {
+      const input = document.getElementById('capture-input');
+      const text = (input.value || '').trim();
+      if (!text) return;
+      state.inbox.push(text);
+      state.chat.push({ id: uid(), role: 'assistant', text: 'Captured: "' + text + '"\n\nIt\'s in the inbox. You can process it later — no need to decide right now.' });
+      input.value = '';
+      render();
+    }
+
+    // ========== VOICE (Speech-to-Text + Text-to-Speech) ==========
+    let recognition = null;
+    let isListening = false;
+
+    let selectedVoiceURI = '';
+    try {
+      selectedVoiceURI = localStorage.getItem('enid-voice-uri') || '';
+    } catch (e) {
+      selectedVoiceURI = '';
+    }
+
+    function speak(text) {
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.rate = 1.05;
+      utter.pitch = 1.12;
+      utter.volume = 1;
+
+      const voices = window.speechSynthesis.getVoices();
+      let voice = null;
+
+      if (selectedVoiceURI) {
+        voice = voices.find(v => v.voiceURI === selectedVoiceURI);
+      }
+
+      // Fallback preference if nothing selected yet
+      if (!voice) {
+        voice =
+          voices.find(v => /Microsoft Aria|Microsoft Jenny|Google US English|Samantha|Ava|Emma/i.test(v.name) && /en-US|en_US/i.test(v.lang)) ||
+          voices.find(v => v.lang.startsWith('en-US') && !/male/i.test(v.name)) ||
+          voices.find(v => v.lang.startsWith('en') && !/AU|Australia|male/i.test(v.lang + v.name));
+      }
+
+      if (voice) utter.voice = voice;
+      window.speechSynthesis.speak(utter);
+    }
+
+    function populateVoiceList() {
+      const select = document.getElementById('voice-select');
+      if (!select || !window.speechSynthesis) return;
+
+      const voices = window.speechSynthesis.getVoices()
+        .filter(v => v.lang && v.lang.startsWith('en'))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      if (voices.length === 0) {
+        select.innerHTML = '<option value="">Waiting for voices… (try speaking or click mic)</option>';
+        return;
+      }
+
+      select.innerHTML = voices.map(v => {
+        const label = v.name + ' (' + v.lang + ')';
+        const selected = v.voiceURI === selectedVoiceURI ? ' selected' : '';
+        return '<option value="' + v.voiceURI + '"' + selected + '>' + label + '</option>';
+      }).join('');
+
+      // Auto-pick a decent American voice if none chosen yet
+      if (!selectedVoiceURI && voices.length) {
+        const auto =
+          voices.find(v => /Microsoft Aria|Microsoft Jenny|Samantha|Ava|Emma|Google US English/i.test(v.name) && /en-US/i.test(v.lang)) ||
+          voices.find(v => v.lang.startsWith('en-US'));
+        if (auto) {
+          selectedVoiceURI = auto.voiceURI;
+          select.value = auto.voiceURI;
+          try { localStorage.setItem('enid-voice-uri', selectedVoiceURI); } catch (e) {}
+        }
+      }
+    }
+
+    // Load voices – call multiple times because browsers are flaky with file://
+    if (window.speechSynthesis) {
+      populateVoiceList();
+      window.speechSynthesis.onvoiceschanged = populateVoiceList;
+      // Extra retries
+      setTimeout(populateVoiceList, 500);
+      setTimeout(populateVoiceList, 1500);
+      setTimeout(populateVoiceList, 3000);
+    }
+
+    function startListening() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        setVoiceStatus('Speech recognition not supported in this browser. Try Chrome.');
+        return;
+      }
+      if (isListening) {
+        stopListening();
+        return;
+      }
+
+      recognition = new SpeechRecognition();
+      recognition.lang = 'en-GB'; // or 'en-US'
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      recognition.continuous = false;
+
+      recognition.onstart = function() {
+        isListening = true;
+        const btn = document.getElementById('mic-btn');
+        if (btn) {
+          btn.textContent = '⏹';
+          btn.classList.add('bg-lavender-500', 'text-white');
+          btn.classList.remove('bg-lavender-100', 'text-lavender-600');
+        }
+        setVoiceStatus('Listening… speak now');
+      };
+
+      recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById('chat-input').value = transcript;
+        setVoiceStatus('Got it: "' + transcript + '"');
+        // Auto-send after a short pause so user can see it
+        setTimeout(function() {
+          sendChat();
+        }, 400);
+      };
+
+      recognition.onerror = function(event) {
+        setVoiceStatus('Mic error: ' + (event.error || 'unknown'));
+        stopListening();
+      };
+
+      recognition.onend = function() {
+        stopListening();
+      };
+
+      try {
+        recognition.start();
+      } catch (err) {
+        setVoiceStatus('Could not start microphone');
+        stopListening();
+      }
+    }
+
+    function stopListening() {
+      isListening = false;
+      if (recognition) {
+        try { recognition.stop(); } catch (e) {}
+      }
+      const btn = document.getElementById('mic-btn');
+      if (btn) {
+        btn.textContent = '🎤';
+        btn.classList.remove('bg-lavender-500', 'text-white');
+        btn.classList.add('bg-lavender-100', 'text-lavender-600');
+      }
+      // clear status after a moment
+      setTimeout(function() {
+        const status = document.getElementById('voice-status');
+        if (status && !isListening) status.classList.add('hidden');
+      }, 2500);
+    }
+
+    function setVoiceStatus(msg) {
+      const el = document.getElementById('voice-status');
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    // Make Enid speak when she replies
+    const originalSendChat = sendChat;
+    sendChat = function() {
+      const input = document.getElementById('chat-input');
+      const text = (input.value || '').trim();
+      if (!text) return;
+      state.chat.push({ id: uid(), role: 'user', text: text });
+      input.value = '';
+      render();
+      setTimeout(function() {
+        const reply = enidReply(text);
+        state.chat.push({ id: uid(), role: 'assistant', text: reply });
+        render();
+        speak(reply); // Enid talks out loud
+      }, 300);
+    };
+
+    // ========== EVENT DELEGATION (this makes clicking reliable) ==========
+    document.addEventListener('click', function(e) {
+      const target = e.target.closest('[data-mode], [data-task], [data-step], #add-task, #send-chat, #toggle-chat, #close-chat, #mic-btn');
+      if (!target) return;
+
+      if (target.hasAttribute('data-mode')) {
+        switchMode(target.getAttribute('data-mode'));
+      } else if (target.hasAttribute('data-task')) {
+        toggleTask(target.getAttribute('data-task'));
+      } else if (target.hasAttribute('data-step')) {
+        toggleStep(target.getAttribute('data-step'));
+      } else if (target.id === 'add-task') {
+        addTask();
+      } else if (target.id === 'send-chat') {
+        sendChat();
+      } else if (target.id === 'toggle-chat') {
+        state.showChat = !state.showChat;
+        render();
+      } else if (target.id === 'close-chat') {
+        state.showChat = false;
+        render();
+      } else if (target.id === 'mic-btn') {
+        startListening();
+      }
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        if (e.target && e.target.id === 'new-task') addTask();
+        else if (e.target && e.target.id === 'chat-input') sendChat();
+        else if (e.target && e.target.id === 'capture-input') doCapture();
+      }
+    });
+
+    // Voice selector change
+    document.addEventListener('change', function(e) {
+      if (e.target && e.target.id === 'voice-select') {
+        selectedVoiceURI = e.target.value;
+        try { localStorage.setItem('enid-voice-uri', selectedVoiceURI); } catch (err) {}
+        // Preview the new voice
+        speak("Hey, it's Enid. How does this voice sound?");
+      }
+    });
+
+    // ========== START ==========
+    render();
+    populateVoiceList();
+
+    // Speak the opening message once
+    setTimeout(function() {
+      if (state.chat.length <= 2) {
+        speak(state.chat[0].text);
+      }
+    }, 900);
+  </script>
+</body>
+</html>
