@@ -484,30 +484,51 @@
     }
 
     function fallbackSpeak(text) {
-      // Copy to clipboard
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(function() {
-          showSpeakToast("Copied to clipboard!\n\nOn Mac: press Option + Esc  (or Edit → Speech → Start Speaking)\n\nThe text is ready.");
-        }).catch(function() {
-          showSpeakToast("Select the text below and use Edit → Speech → Start Speaking:\n\n" + text);
-        });
-      } else {
-        showSpeakToast("Select the text below and use Edit → Speech → Start Speaking:\n\n" + text);
+      // Show a visible box with the text already selected so Option+Esc works reliably
+      let box = document.getElementById('speak-box');
+      if (!box) {
+        box = document.createElement('div');
+        box.id = 'speak-box';
+        box.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);width:min(480px,92%);background:#2d2438;color:#f5f0fa;padding:16px 18px;border-radius:16px;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,0.3);font-size:14px;line-height:1.45;';
+        document.body.appendChild(box);
       }
+
+      box.innerHTML = '<div style="font-size:12px;opacity:0.8;margin-bottom:8px;">Enid says — text is selected. Press <b>Option + Esc</b> now</div>' +
+                      '<textarea id="speak-holder" style="width:100%;height:90px;background:#3d3250;color:#fff;border:none;border-radius:10px;padding:10px;font-size:14px;resize:none;outline:none;">' + 
+                      text.replace(/</g,"&lt;").replace(/>/g,"&gt;") + '</textarea>' +
+                      '<div style="margin-top:10px;text-align:right;"><button id="speak-close" style="background:#9a6fc2;color:white;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;">Close</button></div>';
+
+      box.style.display = 'block';
+
+      // Select the text
+      setTimeout(function() {
+        const holder = document.getElementById('speak-holder');
+        if (holder) {
+          holder.focus();
+          holder.select();
+          holder.setSelectionRange(0, holder.value.length);
+        }
+      }, 50);
+
+      // Close button
+      setTimeout(function() {
+        const closeBtn = document.getElementById('speak-close');
+        if (closeBtn) closeBtn.onclick = function() { box.style.display = 'none'; };
+      }, 60);
     }
 
     function showSpeakToast(msg) {
-      // Simple temporary message
+      // kept for compatibility but no longer the main path
       let toast = document.getElementById('speak-toast');
       if (!toast) {
         toast = document.createElement('div');
         toast.id = 'speak-toast';
-        toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#4a3a5c;color:white;padding:12px 18px;border-radius:12px;font-size:13px;z-index:9999;max-width:90%;white-space:pre-wrap;box-shadow:0 4px 20px rgba(0,0,0,0.2);';
+        toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#4a3a5c;color:white;padding:14px 20px;border-radius:14px;font-size:14px;z-index:9999;max-width:90%;white-space:pre-wrap;box-shadow:0 6px 24px rgba(0,0,0,0.25);text-align:center;line-height:1.45;';
         document.body.appendChild(toast);
       }
       toast.textContent = msg;
       toast.style.display = 'block';
-      setTimeout(function() { toast.style.display = 'none'; }, 6000);
+      setTimeout(function() { toast.style.display = 'none'; }, 5000);
     }
 
     function populateVoiceList() {
