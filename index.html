@@ -30,7 +30,164 @@
     }
   </script>
   <style>
-    body { font-family: 'Inter', system-ui, sans-serif; margin: 0; background: #F8F6F9; }
+    html, body { height: 100%; margin: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #F8F6F9; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #d4c4e0; border-radius: 3px; }
+    .mode-bg { transition: background-color 0.35s ease; }
+    button { cursor: pointer; }
+    #app { display: flex; flex-direction: column; height: 100vh; }
+    #enid-bar { flex-shrink: 0; }
+    #main-row { flex: 1; display: flex; min-height: 0; overflow: hidden; }
+    #sidebar { width: 220px; flex-shrink: 0; overflow-y: auto; }
+    #main-content { flex: 1; min-width: 0; overflow-y: auto; }
+    #chat-panel { width: 320px; flex-shrink: 0; display: flex; flex-direction: column; overflow: hidden; }
+  </style>
+</head>
+<body>
+  <div id="app" class="mode-bg bg-morning-light">
+
+    <!-- BIG ENID BAR -->
+    <div id="enid-bar" class="bg-white/95 backdrop-blur border-b border-lavender-100 px-5 py-3 flex items-center gap-4 shadow-soft z-30">
+      <img src="enid-avatar.png" alt="Enid" class="w-14 h-14 rounded-full object-cover border-2 border-lavender-300 shadow" onerror="this.style.display='none'">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2">
+          <h1 class="text-lg font-semibold text-lavender-800">Enid</h1>
+          <span class="text-xs text-lavender-400">your sidekick</span>
+        </div>
+        <p class="text-sm text-gray-500 truncate" id="enid-status">Ready when you are. Talk to me or start a Brain Dump.</p>
+      </div>
+      <button id="big-mic-btn" type="button" class="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-lavender-500 hover:bg-lavender-600 text-white font-medium shadow-soft">
+        <span class="text-lg">🎤</span> Talk to Enid
+      </button>
+      <button id="brain-dump-btn" type="button" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white border border-lavender-200 hover:bg-lavender-50 text-lavender-700 font-medium">
+        🧠 Brain Dump
+      </button>
+    </div>
+
+    <!-- MAIN ROW -->
+    <div id="main-row">
+
+      <!-- LEFT SIDEBAR -->
+      <aside id="sidebar" class="bg-white/80 backdrop-blur border-r border-lavender-100 flex flex-col">
+        <div class="p-4 border-b border-lavender-100">
+          <h1 class="text-base font-semibold text-lavender-700">Sidekick</h1>
+          <p class="text-xs text-lavender-400">calm focus</p>
+        </div>
+        <div class="p-3 space-y-1 flex-1 overflow-y-auto">
+          <p class="text-[10px] uppercase tracking-wider text-lavender-400 px-2 mb-2">Modes</p>
+          <div id="mode-list"></div>
+        </div>
+        <div id="routine-panel" class="p-4 border-t border-lavender-100" style="display:none;">
+          <p class="text-[10px] uppercase tracking-wider text-lavender-400 mb-3" id="routine-title">Routine</p>
+          <div id="routine-steps" class="space-y-2"></div>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT -->
+      <main id="main-content" class="flex flex-col">
+        <header class="px-6 py-4 flex items-center justify-between border-b border-white/50 flex-shrink-0">
+          <div class="flex items-center gap-3">
+            <div id="mode-icon" class="w-10 h-10 rounded-2xl flex items-center justify-center text-xl bg-morning-light text-morning-dark">🌅</div>
+            <div>
+              <h2 id="mode-name" class="text-xl font-medium text-gray-800">Morning</h2>
+              <p id="mode-desc" class="text-sm text-gray-500">Ease into the day with intention</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <input id="capture-input" type="text" placeholder="Quick capture..." 
+              class="pl-4 pr-4 py-2 text-sm bg-white/80 border border-lavender-100 rounded-full w-48 focus:outline-none focus:ring-2 focus:ring-lavender-200 placeholder:text-lavender-300">
+            <button id="toggle-chat" class="p-2.5 rounded-full bg-lavender-100 text-lavender-600 text-sm">💬</button>
+          </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto px-6 py-5">
+          <div class="max-w-2xl">
+            <div class="mb-8">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider">Focus now</h3>
+                <span id="task-count" class="text-xs text-lavender-400">0 open</span>
+              </div>
+              <div id="task-list" class="space-y-2"></div>
+              <div class="mt-4 flex gap-2">
+                <input id="new-task" type="text" placeholder="Add a task in this mode..."
+                  class="flex-1 px-4 py-2.5 text-sm bg-white/60 border border-lavender-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-lavender-200">
+                <button id="add-task" class="px-4 py-2.5 bg-lavender-500 text-white rounded-xl hover:bg-lavender-600">+</button>
+              </div>
+            </div>
+            <div id="inbox-section" class="mb-6" style="display:none;">
+              <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Inbox</h3>
+              <div id="inbox-list"></div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- CHAT PANEL -->
+      <aside id="chat-panel" class="bg-white/90 backdrop-blur border-l border-lavender-100">
+        <div class="p-4 border-b border-lavender-100">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <img src="enid-avatar.png" alt="Enid" class="w-9 h-9 rounded-full object-cover border-2 border-lavender-200" onerror="this.style.display='none'">
+              <div>
+                <p class="text-sm font-medium text-gray-800">Enid</p>
+                <p class="text-[10px] text-lavender-400">bossy · on your side</p>
+              </div>
+            </div>
+            <button id="close-chat" class="text-gray-400 hover:text-gray-600 text-sm">✕</button>
+          </div>
+          <div class="mt-3">
+            <label class="text-[10px] uppercase tracking-wider text-lavender-400">Voice</label>
+            <select id="voice-select" class="mt-1 w-full text-xs bg-lavender-50 border border-lavender-100 rounded-lg px-2 py-1.5 focus:outline-none text-gray-700">
+              <option value="">Loading voices…</option>
+            </select>
+          </div>
+        </div>
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3" style="min-height: 200px;"></div>
+        <div class="p-4 border-t border-lavender-100">
+          <div class="flex gap-2 items-center">
+            <button id="mic-btn" type="button" class="p-2.5 rounded-xl bg-lavender-100 text-lavender-600 hover:bg-lavender-200 flex-shrink-0">🎤</button>
+            <input id="chat-input" type="text" placeholder="Talk to Enid (or type)..."
+              class="flex-1 px-3.5 py-2.5 text-sm bg-lavender-50 border border-lavender-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-lavender-200">
+            <button id="send-chat" type="button" class="px-3 py-2.5 bg-lavender-500 text-white rounded-xl hover:bg-lavender-600">→</button>
+          </div>
+          <div class="mt-2">
+            <button id="speak-last" type="button" class="w-full py-2 rounded-xl bg-lavender-100 hover:bg-lavender-200 text-lavender-700 text-sm font-medium">
+              🔊 Speak Enid’s last reply
+            </button>
+          </div>
+          <p id="voice-status" class="text-[10px] text-lavender-400 mt-1.5 px-1 hidden"></p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            lavender: {
+              50: '#F9F5FC', 100: '#F0E6F7', 200: '#E0CBF0', 300: '#C9A9E4',
+              400: '#B08AD3', 500: '#9A6FC2', 600: '#8258A8',
+            },
+            teal: { 50: '#F0F9F9', 100: '#D8F0F0', 200: '#B2E0E0', 300: '#7CC8C8', 400: '#4AAEAE', 500: '#2F9494' },
+            work: { light: '#E8F4F4', DEFAULT: '#4AAEAE', dark: '#2F7A7A' },
+            creative: { light: '#F5EDFA', DEFAULT: '#9A6FC2', dark: '#6B4A8F' },
+            morning: { light: '#FFF8E7', DEFAULT: '#E8C47A', dark: '#C9A04A' },
+            evening: { light: '#F0E8F5', DEFAULT: '#7B6B9A', dark: '#5A4A7A' },
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          boxShadow: {
+            soft: '0 2px 15px -3px rgba(0,0,0,0.04), 0 10px 20px -2px rgba(0,0,0,0.03)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #F8F6F9; }
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-thumb { background: #d4c4e0; border-radius: 3px; }
     .mode-bg { transition: background-color 0.35s ease; }
@@ -59,7 +216,7 @@
     </div>
 
     <!-- MAIN 3-COLUMN AREA -->
-    <div class="flex flex-1" style="height: calc(100vh - 80px); min-height: 500px;">
+    <div class="flex flex-1" style="height: calc(100vh - 90px); min-height: 600px; display: flex;">
     <!-- LEFT SIDEBAR -->
     <aside class="w-56 flex-shrink-0 bg-white/80 backdrop-blur border-r border-lavender-100 flex flex-col overflow-y-auto h-full">
       <div class="p-5 border-b border-lavender-100">
