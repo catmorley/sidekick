@@ -229,15 +229,6 @@
         🧠 Brain Dump
       </button>
       <div class="relative">
-        <button id="add-menu-btn" type="button" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-lavender-600 hover:bg-lavender-700 text-white font-medium shadow-soft">
-          + Add
-        </button>
-        <div id="add-menu" class="hidden absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-lavender-100 py-2 z-50">
-          <button data-add="todo" class="w-full text-left px-4 py-2.5 text-sm hover:bg-lavender-50 flex items-center gap-2">✅ To-do</button>
-          <button data-add="idea" class="w-full text-left px-4 py-2.5 text-sm hover:bg-lavender-50 flex items-center gap-2">💡 Idea</button>
-          <button data-add="thought" class="w-full text-left px-4 py-2.5 text-sm hover:bg-lavender-50 flex items-center gap-2">💭 Thought</button>
-          <button data-add="photo" class="w-full text-left px-4 py-2.5 text-sm hover:bg-lavender-50 flex items-center gap-2">📷 Photo</button>
-          <div class="border-t border-lavender-100 my-1"></div>
           <button data-add="list" class="w-full text-left px-4 py-2.5 text-sm hover:bg-lavender-50 flex items-center gap-2">📋 New List</button>
           <button data-add="project" class="w-full text-left px-4 py-2.5 text-sm hover:bg-lavender-50 flex items-center gap-2">📁 New Project</button>
         </div>
@@ -1031,7 +1022,7 @@
         return;
       }
 
-      const target = e.target.closest('[data-mode], [data-task], [data-step], #add-task, #send-chat, #toggle-chat, #close-chat, #mic-btn, #speak-last, #brain-dump-btn, #big-mic-btn, #add-menu-btn');
+      const target = e.target.closest('[data-mode], [data-task], [data-step], [data-add], #add-task, #send-chat, #toggle-chat, #close-chat, #mic-btn, #speak-last, #brain-dump-btn, #big-mic-btn, #add-menu-btn');
       if (!target) return;
 
       if (target.hasAttribute('data-mode')) {
