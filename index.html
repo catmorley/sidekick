@@ -509,7 +509,17 @@
         inboxSection.style.display = 'block';
         let inboxHtml = '';
         state.inbox.forEach(function(item) {
-          inboxHtml += '<div class="px-3 py-2 bg-white/50 rounded-xl text-sm text-gray-600 mb-1">📥 ' + escapeHtml(item) + '</div>';
+          // Support both old string items and new typed objects
+          const text = typeof item === 'string' ? item : (item.text || '');
+          const type = typeof item === 'object' ? (item.type || 'todo') : 'todo';
+          let icon = '✅';
+          let label = 'To-do';
+          let bg = 'bg-white/60';
+          if (type === 'idea') { icon = '💡'; label = 'Idea'; bg = 'bg-lavender-50'; }
+          if (type === 'thought') { icon = '💭'; label = 'Thought'; bg = 'bg-teal-50'; }
+          inboxHtml += '<div class="px-3 py-2 ' + bg + ' rounded-xl text-sm text-gray-700 mb-1.5 flex items-start gap-2">' +
+            '<span class="flex-shrink-0">' + icon + '</span>' +
+            '<div><span class="text-[10px] uppercase tracking-wide text-lavender-400">' + label + '</span><br>' + escapeHtml(text) + '</div></div>';
         });
         document.getElementById('inbox-list').innerHTML = inboxHtml;
       } else {
@@ -866,21 +876,44 @@
       window._brainDumpMode = false;
       if (!transcript || !transcript.trim()) return;
 
-      // Split roughly into items
-      const lines = transcript.split(/[\.\?\!\n]+/).map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 3; });
-      if (lines.length === 0) {
-        state.inbox.push(transcript.trim());
-      } else {
-        lines.forEach(function(line) { state.inbox.push(line); });
+      // Split on numbers, "and", newlines, or full stops
+      let raw = transcript
+        .replace(/(?:^|\s)(?:one|two|three|four|five|six|seven|eight|nine|ten|1|2|3|4|5|6|7|8|9|10)[\)\:\.]\s*/gi, "\n")
+        .replace(/\s+and\s+/gi, "\n");
+      const lines = raw.split(/[\n\?\!]+/).map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 3; });
+
+      const items = [];
+      lines.forEach(function(line) {
+        const lower = line.toLowerCase();
+        let type = "todo"; // default
+        if (lower.match(/\b(idea|maybe|could|what if|project|concept)\b/)) type = "idea";
+        else if (lower.match(/\b(feel|feeling|think|thought|worried|overwhelmed|excited|tired|anxious|happy|sad)\b/)) type = "thought";
+
+        items.push({ text: line, type: type });
+        state.inbox.push({ text: line, type: type, id: uid() });
+      });
+
+      if (items.length === 0) {
+        state.inbox.push({ text: transcript.trim(), type: "thought", id: uid() });
+        items.push({ text: transcript.trim(), type: "thought" });
       }
 
-      const count = lines.length || 1;
-      const reply = "Got it. " + count + " things just landed in the inbox.\n\nNothing is organised yet — that’s the point. It’s out of your head. When you’re ready we can turn them into real tasks or projects. For now, breathe.";
-      state.chat.push({ id: uid(), role: 'assistant', text: reply });
-      render();
-      setTimeout(function() { speak(reply); }, 400);
+      const todos = items.filter(i => i.type === "todo").length;
+      const ideas = items.filter(i => i.type === "idea").length;
+      const thoughts = items.filter(i => i.type === "thought").length;
 
-      const status = document.getElementById('enid-status');
+      let summary = "Got the dump. ";
+      const parts = [];
+      if (todos) parts.push(todos + " to-do" + (todos > 1 ? "s" : ""));
+      if (ideas) parts.push(ideas + " idea" + (ideas > 1 ? "s" : ""));
+      if (thoughts) parts.push(thoughts + " thought" + (thoughts > 1 ? "s" : ""));
+      summary += parts.join(", ") + " landed in the inbox.\n\nNothing is organised yet. When you’re ready we can turn ideas into projects and thoughts into just being heard. For now it’s out of your head.";
+
+      state.chat.push({ id: uid(), role: "assistant", text: summary });
+      render();
+      setTimeout(function() { speak(summary); }, 400);
+
+      const status = document.getElementById("enid-status");
       if (status) status.textContent = "Ready when you are. Talk to me or start a Brain Dump.";
     }
 
