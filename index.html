@@ -396,7 +396,14 @@
         projectView.style.display = 'block';
         modeView.style.display = 'none';
         const nameEl = document.getElementById('project-view-name');
-        if (nameEl) nameEl.textContent = proj ? proj.name : 'Project';
+        if (nameEl) {
+          if (state.activeListId) {
+            const al = state.lists.find(function(l) { return l.id === state.activeListId; });
+            nameEl.textContent = (al ? al.name : 'List') + (proj ? ' · ' + proj.name : '');
+          } else {
+            nameEl.textContent = proj ? proj.name : 'Project';
+          }
+        }
         // Lists in this project
         const pLists = state.lists.filter(function(l) { return l.projectId === state.activeProjectId; });
         const plEl = document.getElementById('project-lists');
@@ -411,14 +418,22 @@
         });
         const piEl = document.getElementById('project-items');
         if (piEl) {
-          piEl.innerHTML = pItems.length ? pItems.map(function(item) {
+          // If a list is selected, only show that list's items
+          let showItems = pItems;
+          if (state.activeListId) {
+            showItems = pItems.filter(function(item) { return item.listId === state.activeListId; });
+          }
+          piEl.innerHTML = showItems.length ? showItems.map(function(item) {
             const t = item.type || 'todo';
             const icon = t === 'idea' ? '💡' : (t === 'thought' ? '💭' : (t === 'photo' ? '📷' : '✅'));
             const done = item.done ? ' opacity-50 line-through' : '';
+            const lst = state.lists.find(function(l) { return l.id === item.listId; });
+            const listLabel = lst ? '<span class="text-[10px] text-lavender-400"> · ' + escapeHtml(lst.name) + '</span>' : '';
+            const recurLabel = (item.recur && item.recur !== 'none') ? (item.recur === 'daily' ? ' · 🔄 Daily' : ' · 🔄 Weekly') : '';
             return '<div class="px-3 py-2 bg-white/70 rounded-xl text-sm flex items-start gap-2' + done + '">' +
-              (t === 'todo' ? '<button data-inbox-toggle="' + item.id + '" class="w-5 h-5 rounded-full border-2 border-lavender-300 flex-shrink-0">' + (item.done ? '✓' : '') + '</button>' : '<span>' + icon + '</span>') +
-              '<span>' + escapeHtml(item.text || '') + '</span></div>';
-          }).join('') : '<p class="text-sm text-lavender-300">No items yet — use + Add</p>';
+              (t === 'todo' ? '<button type="button" data-inbox-toggle="' + item.id + '" class="w-5 h-5 rounded-full border-2 border-lavender-300 flex-shrink-0 flex items-center justify-center text-xs">' + (item.done ? '✓' : '') + '</button>' : '<span>' + icon + '</span>') +
+              '<span>' + escapeHtml(item.text || '') + listLabel + recurLabel + '</span></div>';
+          }).join('') : '<p class="text-sm text-lavender-300">No items yet — use + Add → To-do (it will go on this list/project)</p>';
         }
       } else if (projectView && modeView) {
         projectView.style.display = 'none';
