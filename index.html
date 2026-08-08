@@ -103,7 +103,8 @@
       <div class="p-4 border-b border-lavender-100">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-lavender-400 to-teal-400 flex items-center justify-center text-white text-xs font-semibold">E</div>
+            <img src="enid-avatar.png" alt="Enid" class="w-9 h-9 rounded-full object-cover border-2 border-lavender-200 shadow-sm" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-lavender-400 to-teal-400 flex items-center justify-center text-white text-xs font-semibold" style="display:none;">E</div>
             <div>
               <p class="text-sm font-medium text-gray-800">Enid</p>
               <p class="text-[10px] text-lavender-400">bossy · on your side · no nonsense</p>
@@ -436,6 +437,8 @@
     function speak(text) {
       if (!window.speechSynthesis) return;
       window.speechSynthesis.cancel();
+      // Force voices to load
+      window.speechSynthesis.getVoices();
       const utter = new SpeechSynthesisUtterance(text);
       utter.rate = 1.05;
       utter.pitch = 1.12;
