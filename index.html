@@ -69,6 +69,9 @@
           </div>
         </div>
         <div class="flex items-center gap-2">
+          <button id="brain-dump-btn" type="button" class="px-4 py-2 rounded-full bg-lavender-500 hover:bg-lavender-600 text-white text-sm font-medium shadow-soft">
+            🧠 Brain Dump
+          </button>
           <input id="capture-input" type="text" placeholder="Quick capture..." 
             class="pl-4 pr-4 py-2 text-sm bg-white/80 border border-lavender-100 rounded-full w-52 focus:outline-none focus:ring-2 focus:ring-lavender-200 placeholder:text-lavender-300">
           <button id="toggle-chat" class="p-2.5 rounded-full bg-lavender-100 text-lavender-600 text-sm">💬</button>
@@ -493,7 +496,7 @@
         document.body.appendChild(box);
       }
 
-      box.innerHTML = '<div style="font-size:12px;opacity:0.8;margin-bottom:8px;">Enid says — text is selected. Press <b>Option + Esc</b> now</div>' +
+      box.innerHTML = '<div style="font-size:12px;opacity:0.8;margin-bottom:8px;">🔊 Enid is ready — press <b>Option + Esc</b> on your keyboard to hear her</div>' +
                       '<textarea id="speak-holder" style="width:100%;height:90px;background:#3d3250;color:#fff;border:none;border-radius:10px;padding:10px;font-size:14px;resize:none;outline:none;">' + 
                       text.replace(/</g,"&lt;").replace(/>/g,"&gt;") + '</textarea>' +
                       '<div style="margin-top:10px;text-align:right;"><button id="speak-close" style="background:#9a6fc2;color:white;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;">Close</button></div>';
@@ -671,6 +674,33 @@
     };
 
     // ========== EVENT DELEGATION (this makes clicking reliable) ==========
+    
+    function startBrainDump() {
+      const thoughts = prompt("Brain dump — pour everything out. No organising, just get it out of your head:\n\n(Type or paste all your thoughts, ideas, worries, to-dos...)");
+      if (!thoughts || !thoughts.trim()) return;
+
+      // Split by lines or sentences into inbox items
+      const lines = thoughts.split(/[\n•\-]+/).map(function(l) { return l.trim(); }).filter(Boolean);
+      if (lines.length === 0) {
+        state.inbox.push(thoughts.trim());
+      } else {
+        lines.forEach(function(line) {
+          if (line.length > 2) state.inbox.push(line);
+        });
+      }
+
+      state.chat.push({
+        id: uid(),
+        role: 'assistant',
+        text: "Got the whole dump. " + (lines.length || 1) + " things landed in the inbox.\n\nNothing is organised yet — that’s the point. When you’re ready we can turn them into real tasks or projects. For now just breathe. It’s out of your head."
+      });
+      render();
+      // Offer to speak the confirmation
+      setTimeout(function() {
+        speak(state.chat[state.chat.length-1].text);
+      }, 300);
+    }
+
     document.addEventListener('click', function(e) {
       const speakBtn = e.target.closest('.speak-btn');
       if (speakBtn) {
@@ -679,7 +709,7 @@
         return;
       }
 
-      const target = e.target.closest('[data-mode], [data-task], [data-step], #add-task, #send-chat, #toggle-chat, #close-chat, #mic-btn, #speak-last');
+      const target = e.target.closest('[data-mode], [data-task], [data-step], #add-task, #send-chat, #toggle-chat, #close-chat, #mic-btn, #speak-last, #brain-dump-btn');
       if (!target) return;
 
       if (target.hasAttribute('data-mode')) {
@@ -700,6 +730,8 @@
         render();
       } else if (target.id === 'mic-btn') {
         startListening();
+      } else if (target.id === 'brain-dump-btn') {
+        startBrainDump();
       } else if (target.id === 'speak-last') {
         // Find the most recent assistant message
         for (let i = state.chat.length - 1; i >= 0; i--) {
