@@ -92,6 +92,10 @@
         <div class="p-3 space-y-1 flex-1 overflow-y-auto">
           <p class="text-[10px] uppercase tracking-wider text-lavender-400 px-2 mb-2">Modes</p>
           <div id="mode-list"></div>
+          <p class="text-[10px] uppercase tracking-wider text-lavender-400 px-2 mb-2 mt-6">Projects</p>
+          <div id="project-list" class="space-y-1"></div>
+          <p class="text-[10px] uppercase tracking-wider text-lavender-400 px-2 mb-2 mt-4">Lists</p>
+          <div id="list-list" class="space-y-1"></div>
         </div>
         <div id="routine-panel" class="p-4 border-t border-lavender-100" style="display:none;">
           <p class="text-[10px] uppercase tracking-wider text-lavender-400 mb-3" id="routine-title">Routine</p>
@@ -210,136 +214,8 @@
   </style>
 </head>
 <body>
-  <div id="app" class="min-h-screen flex flex-col mode-bg bg-morning-light">
 
-    <!-- BIG ENID BAR -->
-    <div id="enid-bar" class="flex-shrink-0 w-full bg-white/95 backdrop-blur border-b border-lavender-100 px-5 py-3 flex items-center gap-4 shadow-soft z-30">
-      <img src="enid-avatar.png" alt="Enid" class="w-14 h-14 rounded-full object-cover border-2 border-lavender-300 shadow" onerror="this.style.display='none'">
-      <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2">
-          <h1 class="text-lg font-semibold text-lavender-800">Enid</h1>
-          <span class="text-xs text-lavender-400">your sidekick</span>
-        </div>
-        <p class="text-sm text-gray-500 truncate" id="enid-status">Ready when you are. Talk to me or start a Brain Dump.</p>
-      </div>
-      <button id="big-mic-btn" type="button" class="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-lavender-500 hover:bg-lavender-600 text-white font-medium shadow-soft">
-        <span class="text-lg">🎤</span> Talk to Enid
-      </button>
-      <button id="brain-dump-btn" type="button" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white border border-lavender-200 hover:bg-lavender-50 text-lavender-700 font-medium">
-        🧠 Brain Dump
-      </button>
-      <div class="relative">
-          <button data-add="list" class="w-full text-left px-4 py-2.5 text-sm hover:bg-lavender-50 flex items-center gap-2">📋 New List</button>
-          <button data-add="project" class="w-full text-left px-4 py-2.5 text-sm hover:bg-lavender-50 flex items-center gap-2">📁 New Project</button>
-        </div>
-      </div>
-      <input type="file" id="photo-input" accept="image/*" capture="environment" class="hidden">
-    </div>
-
-    <!-- MAIN 3-COLUMN AREA -->
-    <div class="flex flex-1" style="height: calc(100vh - 90px); min-height: 600px; display: flex;">
-    <!-- LEFT SIDEBAR -->
-    <aside class="w-56 flex-shrink-0 bg-white/80 backdrop-blur border-r border-lavender-100 flex flex-col overflow-y-auto h-full">
-      <div class="p-5 border-b border-lavender-100">
-        <h1 class="text-lg font-semibold text-lavender-700 tracking-tight">Sidekick</h1>
-        <p class="text-xs text-lavender-400 mt-0.5">your slightly bossy sidekick</p>
-      </div>
-
-      <div class="p-3 space-y-1 flex-1 overflow-y-auto">
-        <p class="text-[10px] uppercase tracking-wider text-lavender-400 px-2 mb-2">Modes</p>
-        <div id="mode-list"></div>
-      </div>
-
-      <div id="routine-panel" class="p-4 border-t border-lavender-100" style="display:none;">
-        <p class="text-[10px] uppercase tracking-wider text-lavender-400 mb-3" id="routine-title">Routine</p>
-        <div id="routine-steps" class="space-y-2"></div>
-      </div>
-    </aside>
-
-    <!-- MAIN -->
-    <main class="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-      <header class="px-8 py-5 flex items-center justify-between border-b border-white/50">
-        <div class="flex items-center gap-3">
-          <div id="mode-icon" class="w-10 h-10 rounded-2xl flex items-center justify-center text-xl bg-morning-light text-morning-dark">🌅</div>
-          <div>
-            <h2 id="mode-name" class="text-xl font-medium text-gray-800">Morning</h2>
-            <p id="mode-desc" class="text-sm text-gray-500">Ease into the day with intention</p>
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <input id="capture-input" type="text" placeholder="Quick capture..." 
-            class="pl-4 pr-4 py-2 text-sm bg-white/80 border border-lavender-100 rounded-full w-52 focus:outline-none focus:ring-2 focus:ring-lavender-200 placeholder:text-lavender-300">
-          <button id="toggle-chat" class="p-2.5 rounded-full bg-lavender-100 text-lavender-600 text-sm">💬</button>
-        </div>
-      </header>
-
-      <div class="flex-1 overflow-y-auto px-8 py-6">
-        <div class="max-w-2xl">
-          <div class="mb-8">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider">Focus now</h3>
-              <span id="task-count" class="text-xs text-lavender-400">0 open</span>
-            </div>
-            <div id="task-list" class="space-y-2"></div>
-            <div class="mt-4 flex gap-2">
-              <input id="new-task" type="text" placeholder="Add a task in this mode..."
-                class="flex-1 px-4 py-2.5 text-sm bg-white/60 border border-lavender-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-lavender-200">
-              <button id="add-task" class="px-4 py-2.5 bg-lavender-500 text-white rounded-xl hover:bg-lavender-600">+</button>
-            </div>
-          </div>
-
-          <div id="inbox-section" class="mb-6" style="display:none;">
-            <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Inbox</h3>
-            <div id="inbox-list"></div>
-          </div>
-        </div>
-      </div>
-    </main>
-
-    <!-- ENID CHAT -->
-    <aside id="chat-panel" class="w-80 flex-shrink-0 bg-white/90 backdrop-blur border-l border-lavender-100 flex flex-col h-full">
-      <div class="p-4 border-b border-lavender-100">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2.5">
-            <img src="enid-avatar.png" alt="Enid" class="w-9 h-9 rounded-full object-cover border-2 border-lavender-200 shadow-sm" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-lavender-400 to-teal-400 flex items-center justify-center text-white text-xs font-semibold" style="display:none;">E</div>
-            <div>
-              <p class="text-sm font-medium text-gray-800">Enid</p>
-              <p class="text-[10px] text-lavender-400">bossy · on your side · no nonsense</p>
-            </div>
-          </div>
-          <button id="close-chat" class="text-gray-400 hover:text-gray-600 text-sm">✕</button>
-        </div>
-        <div class="mt-3">
-          <label class="text-[10px] uppercase tracking-wider text-lavender-400">Voice</label>
-          <select id="voice-select" class="mt-1 w-full text-xs bg-lavender-50 border border-lavender-100 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-lavender-200 text-gray-700">
-            <option value="">Loading voices…</option>
-          </select>
-        </div>
-      </div>
-      <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
-      <div class="p-4 border-t border-lavender-100">
-        <div class="flex gap-2 items-center">
-          <button id="mic-btn" type="button" title="Speak to Enid"
-            class="p-2.5 rounded-xl bg-lavender-100 text-lavender-600 hover:bg-lavender-200 transition-colors flex-shrink-0">
-            🎤
-          </button>
-          <input id="chat-input" type="text" placeholder="Talk to Enid (or type)..."
-            class="flex-1 px-3.5 py-2.5 text-sm bg-lavender-50 border border-lavender-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-lavender-200">
-          <button id="send-chat" type="button" class="px-3 py-2.5 bg-lavender-500 text-white rounded-xl hover:bg-lavender-600">→</button>
-        </div>
-        <div class="mt-2 flex gap-2">
-          <button id="speak-last" type="button" class="flex-1 py-2 rounded-xl bg-lavender-100 hover:bg-lavender-200 text-lavender-700 text-sm font-medium">
-            🔊 Speak Enid’s last reply
-          </button>
-        </div>
-        <p id="voice-status" class="text-[10px] text-lavender-400 mt-1.5 px-1 hidden"></p>
-      </div>
-    </aside>
-    </div> <!-- end flex row -->
-  </div>
-
-  <script>
+<script>
     // ========== HELPERS ==========
     function uid() {
       return 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -479,6 +355,30 @@
           '<span class="text-base">' + m.icon + '</span>' + m.name + '</button>';
       });
       document.getElementById('mode-list').innerHTML = modeHtml;
+      // Projects
+      const projectList = document.getElementById('project-list');
+      if (projectList) {
+        if (state.projects.length === 0) {
+          projectList.innerHTML = '<p class="text-xs text-lavender-300 px-2">No projects yet</p>';
+        } else {
+          projectList.innerHTML = state.projects.map(function(p) {
+            return '<div class="px-2 py-1.5 rounded-lg text-sm text-gray-700 hover:bg-lavender-50 cursor-pointer flex items-center gap-2" data-project="' + p.id + '">📁 ' + escapeHtml(p.name) + '</div>';
+          }).join('');
+        }
+      }
+      // Lists
+      const listList = document.getElementById('list-list');
+      if (listList) {
+        if (state.lists.length === 0) {
+          listList.innerHTML = '<p class="text-xs text-lavender-300 px-2">No lists yet</p>';
+        } else {
+          listList.innerHTML = state.lists.map(function(l) {
+            const proj = state.projects.find(function(p) { return p.id === l.projectId; });
+            const suffix = proj ? ' <span class="text-lavender-300 text-[10px]">(' + escapeHtml(proj.name) + ')</span>' : '';
+            return '<div class="px-2 py-1.5 rounded-lg text-sm text-gray-700 hover:bg-lavender-50 cursor-pointer flex items-center gap-2" data-list="' + l.id + '">📋 ' + escapeHtml(l.name) + suffix + '</div>';
+          }).join('');
+        }
+      }
 
       // Header
       document.getElementById('mode-icon').textContent = mode.icon;
