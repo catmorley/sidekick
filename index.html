@@ -409,7 +409,8 @@
         const plEl = document.getElementById('project-lists');
         if (plEl) {
           plEl.innerHTML = pLists.length ? pLists.map(function(l) {
-            return '<div class="px-3 py-2 bg-white/70 rounded-xl text-sm flex items-center gap-2" data-list="' + l.id + '">📋 ' + escapeHtml(l.name) + '</div>';
+            const seq = l.sequential ? ' <span class="text-[10px] text-lavender-400">Sequential</span>' : ' <span class="text-[10px] text-lavender-300">Any order</span>';
+            return '<div class="px-3 py-2 bg-white/70 rounded-xl text-sm flex items-center gap-2 justify-between"><span data-list="' + l.id + '" class="cursor-pointer flex-1">📋 ' + escapeHtml(l.name) + seq + '</span><button type="button" data-edit-list="' + l.id + '" class="text-lavender-400 hover:text-lavender-600">✎</button></div>';
           }).join('') : '<p class="text-sm text-lavender-300">No lists yet — use + Add → New List</p>';
         }
         // Items tagged to this project
@@ -432,7 +433,7 @@
             const recurLabel = (item.recur && item.recur !== 'none') ? (item.recur === 'daily' ? ' · 🔄 Daily' : ' · 🔄 Weekly') : '';
             return '<div class="px-3 py-2 bg-white/70 rounded-xl text-sm flex items-start gap-2' + done + '">' +
               (t === 'todo' ? '<button type="button" data-inbox-toggle="' + item.id + '" class="w-5 h-5 rounded-full border-2 border-lavender-300 flex-shrink-0 flex items-center justify-center text-xs">' + (item.done ? '✓' : '') + '</button>' : '<span>' + icon + '</span>') +
-              '<span>' + escapeHtml(item.text || '') + listLabel + recurLabel + '</span></div>';
+              '<span class="cursor-pointer flex-1" data-edit-item="' + item.id + '">' + escapeHtml(item.text || '') + listLabel + recurLabel + '</span></div>';
           }).join('') : '<p class="text-sm text-lavender-300">No items yet — use + Add → To-do (it will go on this list/project)</p>';
         }
       } else if (projectView && modeView) {
@@ -454,10 +455,11 @@
             if (active || childLists.length) {
               listsHtml = childLists.map(function(l) {
                 const listActive = state.activeListId === l.id ? ' text-lavender-700 font-medium' : ' text-gray-500';
-                return '<div class="pl-6 pr-2 py-1 text-xs cursor-pointer hover:bg-lavender-50 rounded' + listActive + '" data-list="' + l.id + '">📋 ' + escapeHtml(l.name) + '</div>';
+                const seq = l.sequential ? ' 🔢' : '';
+                return '<div class="pl-6 pr-2 py-1 text-xs cursor-pointer hover:bg-lavender-50 rounded flex items-center justify-between' + listActive + '"><span data-list="' + l.id + '">📋 ' + escapeHtml(l.name) + seq + '</span><button type="button" data-edit-list="' + l.id + '" class="text-lavender-300 hover:text-lavender-600 px-1" title="Edit">✎</button></div>';
               }).join('');
             }
-            return '<div><div class="px-2 py-1.5 rounded-lg text-sm cursor-pointer flex items-center gap-2' + activeClass + '" data-project="' + p.id + '">📁 ' + escapeHtml(p.name) + '</div>' + listsHtml + '</div>';
+            return '<div><div class="px-2 py-1.5 rounded-lg text-sm cursor-pointer flex items-center gap-2' + activeClass + '"><span data-project="' + p.id + '" class="flex-1">📁 ' + escapeHtml(p.name) + '</span><button type="button" data-edit-project="' + p.id + '" class="text-lavender-300 hover:text-lavender-600 px-1" title="Edit">✎</button></div>' + listsHtml + '</div>';
           }).join('');
         }
       }
@@ -577,7 +579,7 @@
           const checkBtn = (type === 'todo') ? '<button data-inbox-toggle="' + itemId + '" class="flex-shrink-0 w-5 h-5 rounded-full border-2 border-lavender-300 flex items-center justify-center text-xs ' + (done ? 'bg-lavender-500 text-white border-lavender-500' : '') + '">' + (done ? '✓' : '') + '</button>' : '<span class="flex-shrink-0">' + icon + '</span>';
           inboxHtml += '<div class="px-3 py-2 ' + bg + ' rounded-xl text-sm text-gray-700 mb-1.5 flex items-start gap-2' + doneClass + '">' +
             checkBtn +
-            '<div class="min-w-0 flex-1"><span class="text-[10px] uppercase tracking-wide text-lavender-400">' + label + '</span><br>' + escapeHtml(text) + metaHtml + notesHtml + extra + '</div></div>';
+            '<div class="min-w-0 flex-1 cursor-pointer" data-edit-item="' + itemId + '"><span class="text-[10px] uppercase tracking-wide text-lavender-400">' + label + '</span><br>' + escapeHtml(text) + metaHtml + notesHtml + extra + '</div></div>';
         });
         document.getElementById('inbox-list').innerHTML = inboxHtml;
       } else {
@@ -976,6 +978,79 @@
     }
 
     
+    
+    function editItem(id) {
+      const item = state.inbox.find(function(x) { return typeof x === 'object' && x.id === id; });
+      if (!item) return;
+      const title = prompt('Title:', item.text || '');
+      if (title === null) return;
+      item.text = title.trim() || item.text;
+      if (item.type === 'todo' || true) {
+        const due = prompt('Due (YYYY-MM-DD, blank to clear):', item.due || '');
+        if (due !== null) item.due = due.trim() || null;
+        const notes = prompt('Notes:', item.notes || '');
+        if (notes !== null) item.notes = notes;
+        const link = prompt('Link:', item.link || '');
+        if (link !== null) item.link = link.trim();
+        const recurStr = prompt('Repeat? 1=None 2=Daily 3=Mon 4=Tue 5=Wed 6=Thu 7=Fri 8=Sat 9=Sun\nCurrent: ' + (item.recur || 'none'), '');
+        if (recurStr === '1') item.recur = 'none';
+        else if (recurStr === '2') item.recur = 'daily';
+        else if (recurStr === '3') item.recur = 'weekly-1';
+        else if (recurStr === '4') item.recur = 'weekly-2';
+        else if (recurStr === '5') item.recur = 'weekly-3';
+        else if (recurStr === '6') item.recur = 'weekly-4';
+        else if (recurStr === '7') item.recur = 'weekly-5';
+        else if (recurStr === '8') item.recur = 'weekly-6';
+        else if (recurStr === '9') item.recur = 'weekly-0';
+        if (state.lists.length) {
+          const listChoice = prompt('List?\n' + state.lists.map((l,i) => (i+1) + '. ' + l.name).join('\n') + '\n0=None\n(blank = keep current)');
+          if (listChoice === '0') { item.listId = null; }
+          else if (listChoice && !isNaN(parseInt(listChoice))) {
+            const idx = parseInt(listChoice) - 1;
+            if (state.lists[idx]) {
+              item.listId = state.lists[idx].id;
+              if (state.lists[idx].projectId) item.projectId = state.lists[idx].projectId;
+            }
+          }
+        }
+      }
+      render();
+    }
+
+    function editProject(id) {
+      const p = state.projects.find(function(x) { return x.id === id; });
+      if (!p) return;
+      const name = prompt('Project name:', p.name);
+      if (name === null) return;
+      if (name.trim()) p.name = name.trim();
+      const del = prompt('Type DELETE to remove this project (lists become standalone):');
+      if (del === 'DELETE') {
+        state.lists.forEach(function(l) { if (l.projectId === id) l.projectId = null; });
+        state.inbox.forEach(function(item) { if (typeof item === 'object' && item.projectId === id) item.projectId = null; });
+        state.projects = state.projects.filter(function(x) { return x.id !== id; });
+        if (state.activeProjectId === id) state.activeProjectId = null;
+      }
+      render();
+    }
+
+    function editList(id) {
+      const l = state.lists.find(function(x) { return x.id === id; });
+      if (!l) return;
+      const name = prompt('List name:', l.name);
+      if (name === null) return;
+      if (name.trim()) l.name = name.trim();
+      const order = prompt('Order type?\n1. Any order (default)\n2. Sequential (do in order)\n\nCurrent: ' + (l.sequential ? 'Sequential' : 'Any order'));
+      if (order === '2') l.sequential = true;
+      else if (order === '1') l.sequential = false;
+      const del = prompt('Type DELETE to remove this list:');
+      if (del === 'DELETE') {
+        state.inbox.forEach(function(item) { if (typeof item === 'object' && item.listId === id) item.listId = null; });
+        state.lists = state.lists.filter(function(x) { return x.id !== id; });
+        if (state.activeListId === id) state.activeListId = null;
+      }
+      render();
+    }
+
     function toggleAddMenu() {
       const menu = document.getElementById('add-menu');
       if (menu) menu.classList.toggle('hidden');
@@ -1009,7 +1084,9 @@
             if (!isNaN(idx) && state.projects[idx]) projectId = state.projects[idx].id;
           }
         }
-        state.lists.push({ id: uid(), name: name.trim(), projectId: projectId, createdAt: new Date().toISOString() });
+        const seqAsk = prompt('List order?\n1. Any order (default)\n2. Sequential (must do in order)');
+        const sequential = (seqAsk === '2');
+        state.lists.push({ id: uid(), name: name.trim(), projectId: projectId, sequential: sequential, createdAt: new Date().toISOString() });
         const proj = state.projects.find(function(p) { return p.id === projectId; });
         const msg = proj ? 'List "' + name.trim() + '" added to project "' + proj.name + '".' : 'List "' + name.trim() + '" created.';
         state.chat.push({ id: uid(), role: 'assistant', text: msg });
@@ -1114,6 +1191,27 @@
         e.preventDefault();
         e.stopPropagation();
         handleAdd(addItem.getAttribute('data-add'));
+        return;
+      }
+      const editEl = e.target.closest('[data-edit-item]');
+      if (editEl) {
+        e.preventDefault();
+        e.stopPropagation();
+        editItem(editEl.getAttribute('data-edit-item'));
+        return;
+      }
+      const editProj = e.target.closest('[data-edit-project]');
+      if (editProj) {
+        e.preventDefault();
+        e.stopPropagation();
+        editProject(editProj.getAttribute('data-edit-project'));
+        return;
+      }
+      const editLst = e.target.closest('[data-edit-list]');
+      if (editLst) {
+        e.preventDefault();
+        e.stopPropagation();
+        editList(editLst.getAttribute('data-edit-list'));
         return;
       }
       const moveItem = e.target.closest('[data-move-item]');
