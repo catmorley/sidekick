@@ -133,21 +133,42 @@
 
         <div class="flex-1 overflow-y-auto px-6 py-5">
           <div class="max-w-2xl">
-            <div class="mb-8">
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider">Focus now</h3>
-                <span id="task-count" class="text-xs text-lavender-400">0 open</span>
+            <!-- Project view (shown when a project is selected) -->
+            <div id="project-view" class="mb-8" style="display:none;">
+              <div class="flex items-center gap-2 mb-4">
+                <button id="back-from-project" class="text-sm text-lavender-500 hover:text-lavender-700">← Back</button>
               </div>
-              <div id="task-list" class="space-y-2"></div>
-              <div class="mt-4 flex gap-2">
-                <input id="new-task" type="text" placeholder="Add a task in this mode..."
-                  class="flex-1 px-4 py-2.5 text-sm bg-white/60 border border-lavender-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-lavender-200">
-                <button id="add-task" class="px-4 py-2.5 bg-lavender-500 text-white rounded-xl hover:bg-lavender-600">+</button>
+              <h2 id="project-view-name" class="text-xl font-medium text-gray-800 mb-1">Project</h2>
+              <p class="text-sm text-gray-500 mb-6">Lists and items in this project</p>
+              <div class="mb-4">
+                <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Lists</h3>
+                <div id="project-lists" class="space-y-2"></div>
               </div>
+              <div class="mb-4">
+                <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Items</h3>
+                <div id="project-items" class="space-y-2"></div>
+              </div>
+              <p class="text-xs text-lavender-400 mt-4">Use + Add to put new lists, to-dos, ideas, thoughts or photos into this project.</p>
             </div>
-            <div id="inbox-section" class="mb-6" style="display:none;">
-              <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Inbox</h3>
-              <div id="inbox-list"></div>
+
+            <!-- Mode / Focus view -->
+            <div id="mode-view">
+              <div class="mb-8">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider">Focus now</h3>
+                  <span id="task-count" class="text-xs text-lavender-400">0 open</span>
+                </div>
+                <div id="task-list" class="space-y-2"></div>
+                <div class="mt-4 flex gap-2">
+                  <input id="new-task" type="text" placeholder="Add a task in this mode..."
+                    class="flex-1 px-4 py-2.5 text-sm bg-white/60 border border-lavender-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-lavender-200">
+                  <button id="add-task" class="px-4 py-2.5 bg-lavender-500 text-white rounded-xl hover:bg-lavender-600">+</button>
+                </div>
+              </div>
+              <div id="inbox-section" class="mb-6" style="display:none;">
+                <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Inbox</h3>
+                <div id="inbox-list"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -366,6 +387,44 @@
           '<span class="text-base">' + m.icon + '</span>' + m.name + '</button>';
       });
       document.getElementById('mode-list').innerHTML = modeHtml;
+
+      // Project vs Mode view
+      const projectView = document.getElementById('project-view');
+      const modeView = document.getElementById('mode-view');
+      if (state.activeProjectId && projectView && modeView) {
+        const proj = state.projects.find(function(p) { return p.id === state.activeProjectId; });
+        projectView.style.display = 'block';
+        modeView.style.display = 'none';
+        const nameEl = document.getElementById('project-view-name');
+        if (nameEl) nameEl.textContent = proj ? proj.name : 'Project';
+        // Lists in this project
+        const pLists = state.lists.filter(function(l) { return l.projectId === state.activeProjectId; });
+        const plEl = document.getElementById('project-lists');
+        if (plEl) {
+          plEl.innerHTML = pLists.length ? pLists.map(function(l) {
+            return '<div class="px-3 py-2 bg-white/70 rounded-xl text-sm flex items-center gap-2" data-list="' + l.id + '">📋 ' + escapeHtml(l.name) + '</div>';
+          }).join('') : '<p class="text-sm text-lavender-300">No lists yet — use + Add → New List</p>';
+        }
+        // Items tagged to this project
+        const pItems = state.inbox.filter(function(item) {
+          return typeof item === 'object' && item.projectId === state.activeProjectId;
+        });
+        const piEl = document.getElementById('project-items');
+        if (piEl) {
+          piEl.innerHTML = pItems.length ? pItems.map(function(item) {
+            const t = item.type || 'todo';
+            const icon = t === 'idea' ? '💡' : (t === 'thought' ? '💭' : (t === 'photo' ? '📷' : '✅'));
+            const done = item.done ? ' opacity-50 line-through' : '';
+            return '<div class="px-3 py-2 bg-white/70 rounded-xl text-sm flex items-start gap-2' + done + '">' +
+              (t === 'todo' ? '<button data-inbox-toggle="' + item.id + '" class="w-5 h-5 rounded-full border-2 border-lavender-300 flex-shrink-0">' + (item.done ? '✓' : '') + '</button>' : '<span>' + icon + '</span>') +
+              '<span>' + escapeHtml(item.text || '') + '</span></div>';
+          }).join('') : '<p class="text-sm text-lavender-300">No items yet — use + Add</p>';
+        }
+      } else if (projectView && modeView) {
+        projectView.style.display = 'none';
+        modeView.style.display = 'block';
+      }
+
       // Projects
       const projectList = document.getElementById('project-list');
       if (projectList) {
@@ -907,8 +966,9 @@
       const label = type === 'todo' ? 'To-do' : (type === 'idea' ? 'Idea' : 'Thought');
       const text = prompt(label + ':');
       if (!text || !text.trim()) return;
-      state.inbox.push({ id: uid(), text: text.trim(), type: type });
-      state.chat.push({ id: uid(), role: 'assistant', text: label + ' captured: "' + text.trim() + '"' });
+      state.inbox.push({ id: uid(), text: text.trim(), type: type, projectId: state.activeProjectId || null });
+      const where = state.activeProjectId ? ' in this project' : '';
+      state.chat.push({ id: uid(), role: 'assistant', text: label + ' captured' + where + ': "' + text.trim() + '"' });
       render();
     }
 
@@ -924,6 +984,7 @@
           type: 'photo',
           text: file.name || 'Photo',
           image: dataUrl,
+          projectId: state.activeProjectId || null,
           createdAt: new Date().toISOString()
         });
         state.chat.push({ id: uid(), role: 'assistant', text: 'Photo added to your inbox.' });
@@ -942,6 +1003,21 @@
         handleAdd(addItem.getAttribute('data-add'));
         return;
       }
+      const inboxToggle = e.target.closest('[data-inbox-toggle]');
+      if (inboxToggle) {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = inboxToggle.getAttribute('data-inbox-toggle');
+        for (let i = 0; i < state.inbox.length; i++) {
+          const x = state.inbox[i];
+          if (typeof x === 'object' && x.id === id) {
+            x.done = !x.done;
+            break;
+          }
+        }
+        render();
+        return;
+      }
 
       const speakBtn = e.target.closest('.speak-btn');
       if (speakBtn) {
@@ -950,7 +1026,7 @@
         return;
       }
 
-      const target = e.target.closest('[data-mode], [data-task], [data-step], [data-project], [data-list], [data-inbox-toggle], #add-task, #send-chat, #toggle-chat, #close-chat, #mic-btn, #speak-last, #brain-dump-btn, #big-mic-btn, #add-menu-btn');
+      const target = e.target.closest('[data-mode], [data-task], [data-step], [data-project], [data-list], [data-inbox-toggle], #add-task, #send-chat, #toggle-chat, #close-chat, #mic-btn, #speak-last, #brain-dump-btn, #big-mic-btn, #add-menu-btn, #back-from-project');
       if (!target) return;
 
       if (target.hasAttribute('data-mode')) {
@@ -974,14 +1050,27 @@
         startListening();
       } else if (target.id === 'brain-dump-btn') {
         startBrainDump();
+      } else if (target.id === 'back-from-project') {
+        state.activeProjectId = null;
+        state.activeListId = null;
+        render();
       } else if (target.id === 'add-menu-btn') {
         toggleAddMenu();
       } else if (target.hasAttribute('data-add')) {
         handleAdd(target.getAttribute('data-add'));
       } else if (target.hasAttribute('data-inbox-toggle')) {
+        e.preventDefault();
+        e.stopPropagation();
         const id = target.getAttribute('data-inbox-toggle');
-        const item = state.inbox.find(function(x) { return typeof x === 'object' && x.id === id; });
-        if (item) { item.done = !item.done; render(); }
+        for (let i = 0; i < state.inbox.length; i++) {
+          const x = state.inbox[i];
+          if (typeof x === 'object' && x.id === id) {
+            x.done = !x.done;
+            break;
+          }
+        }
+        render();
+        return;
       } else if (target.hasAttribute('data-project')) {
         const pid = target.getAttribute('data-project');
         state.activeProjectId = pid;
