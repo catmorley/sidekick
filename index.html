@@ -63,6 +63,21 @@
       <button id="brain-dump-btn" type="button" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white border border-lavender-200 hover:bg-lavender-50 text-lavender-700 font-medium">
         🧠 Brain Dump
       </button>
+      <div class="relative">
+        <button id="add-menu-btn" type="button" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-lavender-600 hover:bg-lavender-700 text-white font-medium shadow-soft">
+          + Add
+        </button>
+        <div id="add-menu" class="hidden absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-lavender-100 py-2 z-50">
+          <button data-add="todo" class="w-full text-left px-4 py-2.5 text-sm hover:bg-lavender-50 flex items-center gap-2">✅ To-do</button>
+          <button data-add="idea" class="w-full text-left px-4 py-2.5 text-sm hover:bg-lavender-50 flex items-center gap-2">💡 Idea</button>
+          <button data-add="thought" class="w-full text-left px-4 py-2.5 text-sm hover:bg-lavender-50 flex items-center gap-2">💭 Thought</button>
+          <button data-add="photo" class="w-full text-left px-4 py-2.5 text-sm hover:bg-lavender-50 flex items-center gap-2">📷 Photo</button>
+          <div class="border-t border-lavender-100 my-1"></div>
+          <button data-add="list" class="w-full text-left px-4 py-2.5 text-sm hover:bg-lavender-50 flex items-center gap-2">📋 New List</button>
+          <button data-add="project" class="w-full text-left px-4 py-2.5 text-sm hover:bg-lavender-50 flex items-center gap-2">📁 New Project</button>
+        </div>
+      </div>
+      <input type="file" id="photo-input" accept="image/*" capture="environment" class="hidden">
     </div>
 
     <!-- MAIN ROW -->
@@ -213,6 +228,21 @@
       <button id="brain-dump-btn" type="button" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white border border-lavender-200 hover:bg-lavender-50 text-lavender-700 font-medium">
         🧠 Brain Dump
       </button>
+      <div class="relative">
+        <button id="add-menu-btn" type="button" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-lavender-600 hover:bg-lavender-700 text-white font-medium shadow-soft">
+          + Add
+        </button>
+        <div id="add-menu" class="hidden absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-lavender-100 py-2 z-50">
+          <button data-add="todo" class="w-full text-left px-4 py-2.5 text-sm hover:bg-lavender-50 flex items-center gap-2">✅ To-do</button>
+          <button data-add="idea" class="w-full text-left px-4 py-2.5 text-sm hover:bg-lavender-50 flex items-center gap-2">💡 Idea</button>
+          <button data-add="thought" class="w-full text-left px-4 py-2.5 text-sm hover:bg-lavender-50 flex items-center gap-2">💭 Thought</button>
+          <button data-add="photo" class="w-full text-left px-4 py-2.5 text-sm hover:bg-lavender-50 flex items-center gap-2">📷 Photo</button>
+          <div class="border-t border-lavender-100 my-1"></div>
+          <button data-add="list" class="w-full text-left px-4 py-2.5 text-sm hover:bg-lavender-50 flex items-center gap-2">📋 New List</button>
+          <button data-add="project" class="w-full text-left px-4 py-2.5 text-sm hover:bg-lavender-50 flex items-center gap-2">📁 New Project</button>
+        </div>
+      </div>
+      <input type="file" id="photo-input" accept="image/*" capture="environment" class="hidden">
     </div>
 
     <!-- MAIN 3-COLUMN AREA -->
@@ -378,6 +408,8 @@
         { id: uid(), role: 'assistant', text: "Hey. I'm Enid.\n\nI'm the bossy one. I'll tell you to finish what you're on before you chase the next idea, and I'll chase *you* when you start drifting.\n\nMorning mode is on. Shall we do the routine, or do you already know what needs doing first?" }
       ],
       inbox: [],
+      projects: [],
+      lists: [],
       showChat: true,
     };
 
@@ -517,9 +549,14 @@
           let bg = 'bg-white/60';
           if (type === 'idea') { icon = '💡'; label = 'Idea'; bg = 'bg-lavender-50'; }
           if (type === 'thought') { icon = '💭'; label = 'Thought'; bg = 'bg-teal-50'; }
+          if (type === 'photo') { icon = '📷'; label = 'Photo'; bg = 'bg-white'; }
+          let extra = '';
+          if (type === 'photo' && item.image) {
+            extra = '<img src="' + item.image + '" class="mt-2 max-h-32 rounded-lg object-cover" alt="photo">';
+          }
           inboxHtml += '<div class="px-3 py-2 ' + bg + ' rounded-xl text-sm text-gray-700 mb-1.5 flex items-start gap-2">' +
             '<span class="flex-shrink-0">' + icon + '</span>' +
-            '<div><span class="text-[10px] uppercase tracking-wide text-lavender-400">' + label + '</span><br>' + escapeHtml(text) + '</div></div>';
+            '<div class="min-w-0"><span class="text-[10px] uppercase tracking-wide text-lavender-400">' + label + '</span><br>' + escapeHtml(text) + extra + '</div></div>';
         });
         document.getElementById('inbox-list').innerHTML = inboxHtml;
       } else {
@@ -917,6 +954,75 @@
       if (status) status.textContent = "Ready when you are. Talk to me or start a Brain Dump.";
     }
 
+    
+    function toggleAddMenu() {
+      const menu = document.getElementById('add-menu');
+      if (menu) menu.classList.toggle('hidden');
+    }
+
+    function handleAdd(type) {
+      const menu = document.getElementById('add-menu');
+      if (menu) menu.classList.add('hidden');
+
+      if (type === 'photo') {
+        document.getElementById('photo-input').click();
+        return;
+      }
+      if (type === 'project') {
+        const name = prompt('Project name:');
+        if (!name || !name.trim()) return;
+        state.projects.push({ id: uid(), name: name.trim(), createdAt: new Date().toISOString() });
+        state.chat.push({ id: uid(), role: 'assistant', text: 'Project "' + name.trim() + '" created. You can add lists and items to it next.' });
+        render();
+        return;
+      }
+      if (type === 'list') {
+        const name = prompt('List name:');
+        if (!name || !name.trim()) return;
+        let projectId = null;
+        if (state.projects.length > 0) {
+          const choice = prompt('Add to which project?\n' + state.projects.map((p,i) => (i+1) + '. ' + p.name).join('\n') + '\n\n(Leave blank for no project)');
+          if (choice && !isNaN(parseInt(choice))) {
+            const idx = parseInt(choice) - 1;
+            if (state.projects[idx]) projectId = state.projects[idx].id;
+          }
+        }
+        state.lists.push({ id: uid(), name: name.trim(), projectId: projectId, createdAt: new Date().toISOString() });
+        state.chat.push({ id: uid(), role: 'assistant', text: 'List "' + name.trim() + '" created.' });
+        render();
+        return;
+      }
+
+      // todo / idea / thought
+      const label = type === 'todo' ? 'To-do' : (type === 'idea' ? 'Idea' : 'Thought');
+      const text = prompt(label + ':');
+      if (!text || !text.trim()) return;
+      state.inbox.push({ id: uid(), text: text.trim(), type: type });
+      state.chat.push({ id: uid(), role: 'assistant', text: label + ' captured: "' + text.trim() + '"' });
+      render();
+    }
+
+    function handlePhoto(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        const dataUrl = ev.target.result;
+        // Keep images reasonably small
+        state.inbox.push({
+          id: uid(),
+          type: 'photo',
+          text: file.name || 'Photo',
+          image: dataUrl,
+          createdAt: new Date().toISOString()
+        });
+        state.chat.push({ id: uid(), role: 'assistant', text: 'Photo added to your inbox.' });
+        render();
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
+    }
+
     document.addEventListener('click', function(e) {
       const speakBtn = e.target.closest('.speak-btn');
       if (speakBtn) {
@@ -925,7 +1031,7 @@
         return;
       }
 
-      const target = e.target.closest('[data-mode], [data-task], [data-step], #add-task, #send-chat, #toggle-chat, #close-chat, #mic-btn, #speak-last, #brain-dump-btn, #big-mic-btn');
+      const target = e.target.closest('[data-mode], [data-task], [data-step], #add-task, #send-chat, #toggle-chat, #close-chat, #mic-btn, #speak-last, #brain-dump-btn, #big-mic-btn, #add-menu-btn');
       if (!target) return;
 
       if (target.hasAttribute('data-mode')) {
@@ -949,6 +1055,10 @@
         startListening();
       } else if (target.id === 'brain-dump-btn') {
         startBrainDump();
+      } else if (target.id === 'add-menu-btn') {
+        toggleAddMenu();
+      } else if (target.hasAttribute('data-add')) {
+        handleAdd(target.getAttribute('data-add'));
       } else if (target.id === 'speak-last') {
         // Find the most recent assistant message
         for (let i = state.chat.length - 1; i >= 0; i--) {
@@ -981,6 +1091,16 @@
     // ========== START ==========
     render();
     populateVoiceList();
+    const photoInput = document.getElementById('photo-input');
+    if (photoInput) photoInput.addEventListener('change', handlePhoto);
+    // Close add menu when clicking outside
+    document.addEventListener('click', function(ev) {
+      const menu = document.getElementById('add-menu');
+      const btn = document.getElementById('add-menu-btn');
+      if (menu && !menu.classList.contains('hidden') && btn && !btn.contains(ev.target) && !menu.contains(ev.target)) {
+        menu.classList.add('hidden');
+      }
+    });
 
     // Speak the opening message once
     setTimeout(function() {
