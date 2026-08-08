@@ -41,28 +41,27 @@
   <div id="app" class="min-h-screen flex flex-col mode-bg bg-morning-light">
 
     <!-- BIG ENID BAR -->
-    <div id="enid-bar" class="w-full bg-white/90 backdrop-blur border-b border-lavender-100 px-6 py-4 flex items-center gap-5 shadow-soft z-20">
-      <img src="enid-avatar.png" alt="Enid" class="w-16 h-16 rounded-full object-cover border-2 border-lavender-300 shadow-md" onerror="this.src=''; this.alt='E'; this.className='w-16 h-16 rounded-full bg-lavender-400 text-white flex items-center justify-center text-2xl font-bold';">
+    <div id="enid-bar" class="flex-shrink-0 w-full bg-white/95 backdrop-blur border-b border-lavender-100 px-5 py-3 flex items-center gap-4 shadow-soft z-30">
+      <img src="enid-avatar.png" alt="Enid" class="w-14 h-14 rounded-full object-cover border-2 border-lavender-300 shadow" onerror="this.style.display='none'">
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2">
-          <h1 class="text-xl font-semibold text-lavender-800">Enid</h1>
+          <h1 class="text-lg font-semibold text-lavender-800">Enid</h1>
           <span class="text-xs text-lavender-400">your sidekick</span>
         </div>
         <p class="text-sm text-gray-500 truncate" id="enid-status">Ready when you are. Talk to me or start a Brain Dump.</p>
       </div>
-      <button id="big-mic-btn" type="button" class="flex items-center gap-2 px-6 py-3 rounded-2xl bg-lavender-500 hover:bg-lavender-600 text-white font-medium shadow-soft transition-colors">
-        <span class="text-xl">🎤</span>
-        <span>Talk to Enid</span>
+      <button id="big-mic-btn" type="button" class="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-lavender-500 hover:bg-lavender-600 text-white font-medium shadow-soft">
+        <span class="text-lg">🎤</span> Talk to Enid
       </button>
-      <button id="brain-dump-btn" type="button" class="flex items-center gap-2 px-5 py-3 rounded-2xl bg-white border border-lavender-200 hover:bg-lavender-50 text-lavender-700 font-medium transition-colors">
-        <span>🧠</span>
-        <span>Brain Dump</span>
+      <button id="brain-dump-btn" type="button" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white border border-lavender-200 hover:bg-lavender-50 text-lavender-700 font-medium">
+        🧠 Brain Dump
       </button>
     </div>
 
-    <div class="flex flex-1 min-h-0">
+    <!-- MAIN 3-COLUMN AREA -->
+    <div class="flex flex-1 min-h-0 overflow-hidden">
     <!-- LEFT SIDEBAR -->
-    <aside class="w-64 flex-shrink-0 bg-white/80 backdrop-blur border-r border-lavender-100 flex flex-col">
+    <aside class="w-56 flex-shrink-0 bg-white/80 backdrop-blur border-r border-lavender-100 flex flex-col overflow-y-auto">
       <div class="p-5 border-b border-lavender-100">
         <h1 class="text-lg font-semibold text-lavender-700 tracking-tight">Sidekick</h1>
         <p class="text-xs text-lavender-400 mt-0.5">your slightly bossy sidekick</p>
