@@ -337,10 +337,17 @@
       let chatHtml = '';
       state.chat.forEach(function(msg) {
         const isUser = msg.role === 'user';
-        chatHtml += '<div class="flex ' + (isUser ? 'justify-end' : 'justify-start') + '">' +
-          '<div class="max-w-[85%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ' +
-          (isUser ? 'bg-lavender-500 text-white rounded-br-md' : 'bg-lavender-50 text-gray-700 rounded-bl-md') + '">' +
-          escapeHtml(msg.text) + '</div></div>';
+        if (isUser) {
+          chatHtml += '<div class="flex justify-end">' +
+            '<div class="max-w-[85%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap bg-lavender-500 text-white rounded-br-md">' +
+            escapeHtml(msg.text) + '</div></div>';
+        } else {
+          chatHtml += '<div class="flex justify-start items-end gap-1.5">' +
+            '<div class="max-w-[85%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap bg-lavender-50 text-gray-700 rounded-bl-md">' +
+            escapeHtml(msg.text) + '</div>' +
+            '<button type="button" data-speak="' + escapeHtml(msg.text).replace(/"/g, '&quot;') + '" class="speak-btn text-lavender-400 hover:text-lavender-600 text-xs p-1 flex-shrink-0" title="Speak this">🔊</button>' +
+            '</div>';
+        }
       });
       const chatEl = document.getElementById('chat-messages');
       chatEl.innerHTML = chatHtml;
@@ -594,6 +601,13 @@
 
     // ========== EVENT DELEGATION (this makes clicking reliable) ==========
     document.addEventListener('click', function(e) {
+      const speakBtn = e.target.closest('.speak-btn');
+      if (speakBtn) {
+        const text = speakBtn.getAttribute('data-speak');
+        if (text) speak(text);
+        return;
+      }
+
       const target = e.target.closest('[data-mode], [data-task], [data-step], #add-task, #send-chat, #toggle-chat, #close-chat, #mic-btn');
       if (!target) return;
 
