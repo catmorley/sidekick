@@ -507,10 +507,20 @@
 
       // Inbox
       const inboxSection = document.getElementById('inbox-section');
-      if (state.inbox.length > 0) {
+      let inboxItems = state.inbox;
+      if (state.activeListId) {
+        inboxItems = state.inbox.filter(function(item) {
+          return typeof item === 'object' && item.listId === state.activeListId;
+        });
+      }
+      if (inboxItems.length > 0 || state.activeListId) {
         inboxSection.style.display = 'block';
         let inboxHtml = '';
-        state.inbox.forEach(function(item) {
+        if (state.activeListId) {
+          const al = state.lists.find(function(l) { return l.id === state.activeListId; });
+          inboxHtml += '<div class="text-xs text-lavender-500 mb-2">Showing list: <b>' + escapeHtml(al ? al.name : '') + '</b> <button id="clear-list-filter" class="underline ml-1">Show all</button></div>';
+        }
+        inboxItems.forEach(function(item) {
           // Support both old string items and new typed objects
           const text = typeof item === 'string' ? item : (item.text || '');
           const type = typeof item === 'object' ? (item.type || 'todo') : 'todo';
@@ -532,7 +542,17 @@
             if (lst) meta.push('📋 ' + lst.name);
           }
           if (typeof item === 'object' && item.due) meta.push('📅 ' + item.due);
+          if (typeof item === 'object' && item.recur && item.recur !== 'none') {
+            const r = item.recur;
+            if (r === 'daily') meta.push('🔄 Daily');
+            else if (r.indexOf('weekly-') === 0) {
+              const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+              const d = parseInt(r.split('-')[1], 10);
+              meta.push('🔄 Every ' + (days[d] || '?'));
+            }
+          }
           if (typeof item === 'object' && item.link) meta.push('<a href="' + escapeHtml(item.link) + '" target="_blank" class="text-lavender-500 underline">Link</a>');
+          if (typeof item === 'object') meta.push('<button data-move-item="' + (item.id||'') + '" class="text-lavender-400 hover:text-lavender-600 underline">Move</button>');
           const metaHtml = meta.length ? '<div class="text-[10px] text-lavender-400 mt-0.5">' + meta.join(' · ') + '</div>' : '';
           const notesHtml = (typeof item === 'object' && item.notes) ? '<div class="text-xs text-gray-500 mt-0.5">' + escapeHtml(item.notes) + '</div>' : '';
 
@@ -992,9 +1012,10 @@
       let due = null;
       let notes = '';
       let link = '';
+      let recur = 'none';
 
       if (type === 'todo') {
-        // Offer list if we have any
+        // If a list is already open, use it; otherwise offer choice
         const relevantLists = state.lists.filter(function(l) {
           return !projectId || l.projectId === projectId || !l.projectId;
         });
@@ -1010,6 +1031,15 @@
         }
         const dueStr = prompt('Due date? (YYYY-MM-DD or leave blank)');
         if (dueStr && dueStr.trim()) due = dueStr.trim();
+        const recurStr = prompt('Repeat?\n1. None\n2. Daily\n3. Every Monday\n4. Every Tuesday\n5. Every Wednesday\n6. Every Thursday\n7. Every Friday\n8. Every Saturday\n9. Every Sunday\n\nEnter number (default 1 = none)');
+        if (recurStr === '2') recur = 'daily';
+        else if (recurStr === '3') recur = 'weekly-1';
+        else if (recurStr === '4') recur = 'weekly-2';
+        else if (recurStr === '5') recur = 'weekly-3';
+        else if (recurStr === '6') recur = 'weekly-4';
+        else if (recurStr === '7') recur = 'weekly-5';
+        else if (recurStr === '8') recur = 'weekly-6';
+        else if (recurStr === '9') recur = 'weekly-0';
         notes = prompt('Notes? (optional)') || '';
         link = prompt('Link? (optional, e.g. https://...)') || '';
       }
@@ -1023,8 +1053,10 @@
         due: due,
         notes: notes,
         link: link,
+        recur: recur,
         createdAt: new Date().toISOString(),
-        done: false
+        done: false,
+        lastCompleted: null
       });
 
       let where = '';
@@ -1069,6 +1101,27 @@
         handleAdd(addItem.getAttribute('data-add'));
         return;
       }
+      const moveItem = e.target.closest('[data-move-item]');
+      if (moveItem) {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = moveItem.getAttribute('data-move-item');
+        const item = state.inbox.find(function(x) { return typeof x === 'object' && x.id === id; });
+        if (item && state.lists.length) {
+          const choice = prompt('Move to which list?\n' + state.lists.map((l,i) => (i+1) + '. ' + l.name).join('\n') + '\n\n0 = Inbox (no list)');
+          if (choice === '0') {
+            item.listId = null;
+          } else if (choice && !isNaN(parseInt(choice))) {
+            const idx = parseInt(choice) - 1;
+            if (state.lists[idx]) {
+              item.listId = state.lists[idx].id;
+              if (state.lists[idx].projectId) item.projectId = state.lists[idx].projectId;
+            }
+          }
+          render();
+        }
+        return;
+      }
       const photoToTodo = e.target.closest('[data-photo-to-todo]');
       if (photoToTodo) {
         e.preventDefault();
@@ -1096,6 +1149,7 @@
           const x = state.inbox[i];
           if (typeof x === 'object' && x.id === id) {
             x.done = !x.done;
+            if (x.done) x.lastCompleted = new Date().toISOString();
             break;
           }
         }
@@ -1110,7 +1164,7 @@
         return;
       }
 
-      const target = e.target.closest('[data-mode], [data-task], [data-step], [data-project], [data-list], [data-inbox-toggle], #add-task, #send-chat, #toggle-chat, #close-chat, #mic-btn, #speak-last, #brain-dump-btn, #big-mic-btn, #add-menu-btn, #back-from-project');
+      const target = e.target.closest('[data-mode], [data-task], [data-step], [data-project], [data-list], [data-inbox-toggle], #add-task, #send-chat, #toggle-chat, #close-chat, #mic-btn, #speak-last, #brain-dump-btn, #big-mic-btn, #add-menu-btn, #back-from-project, #clear-list-filter');
       if (!target) return;
 
       if (target.hasAttribute('data-mode')) {
@@ -1134,6 +1188,9 @@
         startListening();
       } else if (target.id === 'brain-dump-btn') {
         startBrainDump();
+      } else if (target.id === 'clear-list-filter') {
+        state.activeListId = null;
+        render();
       } else if (target.id === 'back-from-project') {
         state.activeProjectId = null;
         state.activeListId = null;
@@ -1150,6 +1207,7 @@
           const x = state.inbox[i];
           if (typeof x === 'object' && x.id === id) {
             x.done = !x.done;
+            if (x.done) x.lastCompleted = new Date().toISOString();
             break;
           }
         }
@@ -1166,7 +1224,8 @@
         const lid = target.getAttribute('data-list');
         state.activeListId = lid;
         const l = state.lists.find(function(x) { return x.id === lid; });
-        state.chat.push({ id: uid(), role: 'assistant', text: 'Opened list "' + (l ? l.name : '') + '".' });
+        if (l && l.projectId) state.activeProjectId = l.projectId;
+        state.chat.push({ id: uid(), role: 'assistant', text: 'Opened list "' + (l ? l.name : '') + '". New to-dos will go here. Use + Add → To-do.' });
         render();
       } else if (target.id === 'speak-last') {
         // Find the most recent assistant message
@@ -1198,6 +1257,27 @@
     });
 
     // ========== START ==========
+    
+    // Reset recurring to-dos that were completed on a previous day
+    (function resetRecurring() {
+      const now = new Date();
+      const today = now.toISOString().slice(0, 10);
+      const day = now.getDay(); // 0=Sun
+      state.inbox.forEach(function(item) {
+        if (typeof item !== 'object' || !item.recur || item.recur === 'none') return;
+        if (!item.done) return;
+        const last = item.lastCompleted ? item.lastCompleted.slice(0, 10) : null;
+        if (item.recur === 'daily' && last !== today) {
+          item.done = false;
+        } else if (item.recur.indexOf('weekly-') === 0) {
+          const targetDay = parseInt(item.recur.split('-')[1], 10);
+          if (day === targetDay && last !== today) {
+            item.done = false;
+          }
+        }
+      });
+    })();
+
     render();
     populateVoiceList();
     const photoInput = document.getElementById('photo-input');
