@@ -828,15 +828,17 @@
         return;
       }
       if (isListening) {
-        stopListening();
+        stopListening(true); // user clicked stop — process what we have
         return;
       }
 
+      window._voiceBuffer = '';
       recognition = new SpeechRecognition();
-      recognition.lang = 'en-GB'; // or 'en-US'
-      recognition.interimResults = false;
+      recognition.lang = 'en-GB';
+      recognition.interimResults = true;
       recognition.maxAlternatives = 1;
-      recognition.continuous = false;
+      // Continuous for brain dump so you can ramble; also for normal talk
+      recognition.continuous = true;
 
       recognition.onstart = function() {
         isListening = true;
@@ -846,42 +848,79 @@
           btn.classList.add('bg-lavender-500', 'text-white');
           btn.classList.remove('bg-lavender-100', 'text-lavender-600');
         }
-        setVoiceStatus('Listening… speak now');
+        const big = document.getElementById('big-mic-btn');
+        if (big) {
+          big.innerHTML = '<span class="text-lg">⏹</span> Stop listening';
+          big.classList.add('bg-red-500', 'hover:bg-red-600');
+          big.classList.remove('bg-lavender-500', 'hover:bg-lavender-600');
+        }
+        // Show stop banner for brain dump
+        let banner = document.getElementById('listening-banner');
+        if (!banner) {
+          banner = document.createElement('div');
+          banner.id = 'listening-banner';
+          banner.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;background:#5b3a7a;color:white;padding:14px 20px;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,0.25);display:flex;align-items:center;gap:12px;max-width:90%;';
+          document.body.appendChild(banner);
+        }
+        banner.innerHTML = '<span id="listening-label">' + (window._brainDumpMode ? 'Brain dump — keep talking…' : 'Listening…') + '</span>' +
+          '<button type="button" id="stop-listen-btn" style="background:white;color:#5b3a7a;border:none;padding:8px 14px;border-radius:10px;font-weight:600;cursor:pointer;">Stop</button>';
+        banner.style.display = 'flex';
+        setTimeout(function() {
+          const sb = document.getElementById('stop-listen-btn');
+          if (sb) sb.onclick = function() { stopListening(true); };
+        }, 50);
+        setVoiceStatus(window._brainDumpMode ? 'Ramble away — tap Stop when done' : 'Listening… tap Stop when finished');
       };
 
       recognition.onresult = function(event) {
-        const transcript = event.results[0][0].transcript;
-        if (window._brainDumpMode) {
-          setVoiceStatus('Brain dump captured');
-          finishBrainDump(transcript);
-        } else {
-          document.getElementById('chat-input').value = transcript;
-          setVoiceStatus('Got it: "' + transcript + '"');
-          setTimeout(function() { sendChat(); }, 400);
+        let finalPiece = '';
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const piece = event.results[i][0].transcript;
+          if (event.results[i].isFinal) finalPiece += piece + ' ';
+          else interim += piece;
         }
+        if (finalPiece) {
+          window._voiceBuffer = (window._voiceBuffer || '') + finalPiece;
+        }
+        const preview = ((window._voiceBuffer || '') + interim).trim();
+        const label = document.getElementById('listening-label');
+        if (label) {
+          label.textContent = (window._brainDumpMode ? 'Brain dump: ' : 'Hearing: ') + (preview.slice(0, 80) + (preview.length > 80 ? '…' : ''));
+        }
+        setVoiceStatus(preview ? ('…' + preview.slice(-60)) : 'Listening…');
       };
 
       recognition.onerror = function(event) {
+        // 'no-speech' is common during pauses — don't kill the session in continuous mode
+        if (event.error === 'no-speech' || event.error === 'aborted') return;
         setVoiceStatus('Mic error: ' + (event.error || 'unknown'));
-        stopListening();
+        stopListening(true);
       };
 
       recognition.onend = function() {
-        stopListening();
+        // In continuous mode browsers sometimes end early — restart if user hasn't stopped
+        if (isListening && recognition) {
+          try { recognition.start(); } catch (e) {}
+        }
       };
 
       try {
         recognition.start();
       } catch (err) {
         setVoiceStatus('Could not start microphone');
-        stopListening();
+        stopListening(false);
       }
     }
 
-    function stopListening() {
+    function stopListening(process) {
+      const wasBrain = window._brainDumpMode;
+      const buffer = (window._voiceBuffer || '').trim();
       isListening = false;
+      window._brainDumpMode = false;
       if (recognition) {
-        try { recognition.stop(); } catch (e) {}
+        try { recognition.onend = null; recognition.stop(); } catch (e) {}
+        recognition = null;
       }
       const btn = document.getElementById('mic-btn');
       if (btn) {
@@ -889,7 +928,27 @@
         btn.classList.remove('bg-lavender-500', 'text-white');
         btn.classList.add('bg-lavender-100', 'text-lavender-600');
       }
-      // clear status after a moment
+      const big = document.getElementById('big-mic-btn');
+      if (big) {
+        big.innerHTML = '<span class="text-lg">🎤</span> Talk to Enid';
+        big.classList.remove('bg-red-500', 'hover:bg-red-600');
+        big.classList.add('bg-lavender-500', 'hover:bg-lavender-600');
+      }
+      const banner = document.getElementById('listening-banner');
+      if (banner) banner.style.display = 'none';
+
+      if (process && buffer) {
+        if (wasBrain) {
+          setVoiceStatus('Brain dump captured');
+          finishBrainDump(buffer);
+        } else {
+          const input = document.getElementById('chat-input');
+          if (input) input.value = buffer;
+          setVoiceStatus('Got it');
+          setTimeout(function() { sendChat(); }, 300);
+        }
+      }
+      window._voiceBuffer = '';
       setTimeout(function() {
         const status = document.getElementById('voice-status');
         if (status && !isListening) status.classList.add('hidden');
